@@ -1,0 +1,8 @@
+/atk_imu901_node:
+  ros__parameters:
+    # IMU端口
+    imu_port: "/dev/ttyS7"
+    # 波特率
+    baudrate: 115200
+    # 话题名称
+    topic: "imu_data"
