@@ -19,6 +19,7 @@
  */
 
 #include <cstring>
+#include <cmath>
 #include <unistd.h>
 
 #include "rclcpp/rclcpp.hpp"
