@@ -30,7 +30,6 @@ include_directories(
 
 file(GLOB main_srcs 
     src/*.cpp
-    src/spdlog/*.cpp
 )
 
 add_executable(${PROJECT_NAME}_node ${main_srcs})
