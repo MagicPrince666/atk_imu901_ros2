@@ -1,10 +1,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "atk_imu901/imu_pub.h"
 
-#include "spdlog/cfg/env.h"
-#include "spdlog/fmt/ostr.h"
-#include "spdlog/spdlog.h"
-
 #define BACKTRACE_DEBUG 0
 
 #if BACKTRACE_DEBUG
@@ -59,7 +55,6 @@ static void _signal_handler(int signum)
 
 int main(int argc, char *argv[])
 {
-    spdlog::info("--- version 2.0 ---");
 #if BACKTRACE_DEBUG
     signal(SIGPIPE, _signal_handler); // SIGPIPE，管道破裂。
     signal(SIGSEGV, _signal_handler); // SIGSEGV，非法内存访问

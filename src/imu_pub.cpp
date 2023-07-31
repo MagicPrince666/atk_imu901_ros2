@@ -6,26 +6,22 @@
 #include "atk_imu901/imu_pub.h"
 #include "rclcpp/rclcpp.hpp"
 
-#include "spdlog/cfg/env.h"
-#include "spdlog/fmt/ostr.h"
-#include "spdlog/spdlog.h"
-
 ImuPub::ImuPub() : rclcpp::Node("imu901m")
 {
     std::string port;
     this->declare_parameter("imu_port", "/dev/ttyS6");
     this->get_parameter("imu_port", port);
-    spdlog::info("port = {}", port);
+    RCLCPP_INFO(this->get_logger(), "port = %s", port.c_str());
 
     int baudrate;
     this->declare_parameter("baudrate", 115200);
     this->get_parameter("baudrate", baudrate);
-    spdlog::info("baudrate = {}", baudrate);
+    RCLCPP_INFO(this->get_logger(), "baudrate = {}", baudrate);
 
     std::string topic;
     this->declare_parameter("topic", "imu");
     this->get_parameter("topic", topic);
-    spdlog::info("topic = {}", topic);
+    RCLCPP_INFO(this->get_logger(), "topic = {}", topic.c_str());
 
     atk_ms901_ = std::make_shared<AtkMs901m>();
     atk_ms901_->Init(port, baudrate);

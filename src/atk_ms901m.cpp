@@ -22,9 +22,6 @@
 #include <unistd.h>
 
 #include "rclcpp/rclcpp.hpp"
-#include "spdlog/cfg/env.h"
-#include "spdlog/fmt/ostr.h"
-#include "spdlog/spdlog.h"
 
 #include "atk_imu901/atk_ms901m.h"
 #include "atk_imu901/serial.h"
@@ -54,14 +51,14 @@ uint8_t AtkMs901m::Init(std::string uart, uint32_t baudrate)
 
     /* 获取ATK-MS901M陀螺仪满量程 */
     ret = ReadRegById(ATK_MS901M_FRAME_ID_REG_GYROFSR, &atk_ms901m_fsr_.gyro, 100);
-    spdlog::info("gyro = {}", atk_ms901m_fsr_.gyro);
+    // spdlog::info("gyro = {}", atk_ms901m_fsr_.gyro);
     if (ret == 0) {
         return ATK_MS901M_ERROR;
     }
 
     /* 获取ATK-MS901M加速度计满量程 */
     ret = ReadRegById(ATK_MS901M_FRAME_ID_REG_ACCFSR, &atk_ms901m_fsr_.accelerometer, 100);
-    spdlog::info("accelerometer = {}", atk_ms901m_fsr_.accelerometer);
+    // spdlog::info("accelerometer = {}", atk_ms901m_fsr_.accelerometer);
     if (ret == 0) {
         return ATK_MS901M_ERROR;
     }
@@ -86,7 +83,7 @@ void AtkMs901m::ReadBuff(const uint8_t *data, const uint32_t len)
     // rx_ring_buffer_.RingBufferIn(data, len);
     std::lock_guard<std::mutex> lck(imu_mtx_);
     if (len > (sizeof(atk_ms901m_buffer_.rx_buffer) - atk_ms901m_buffer_.size)) {
-        spdlog::warn("Buff is full len = {} buff size = {}", len, atk_ms901m_buffer_.size);
+        // spdlog::warn("Buff is full len = {} buff size = {}", len, atk_ms901m_buffer_.size);
         atk_ms901m_buffer_.size = 0;
     }
 
@@ -181,7 +178,7 @@ uint8_t AtkMs901m::GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t i
         atk_ms901m_frame_.pop();
 
         if(id_type != ATK_MS901M_FRAME_ID_TYPE_UPLOAD && id_type != ATK_MS901M_FRAME_ID_TYPE_ACK) {
-            spdlog::info("id_type = {} not found", id_type);
+            // spdlog::info("id_type = {} not found", id_type);
             return ATK_MS901M_EINVAL;
         }
 
