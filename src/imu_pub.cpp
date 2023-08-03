@@ -21,7 +21,7 @@ ImuPub::ImuPub() : rclcpp::Node("imu901m")
     std::string topic;
     this->declare_parameter("topic", "imu");
     this->get_parameter("topic", topic);
-    RCLCPP_INFO(this->get_logger(), "topic = %d", topic.c_str());
+    RCLCPP_INFO(this->get_logger(), "topic = %s", topic.c_str());
 
     atk_ms901_ = std::make_shared<AtkMs901m>();
     atk_ms901_->Init(port, baudrate);
