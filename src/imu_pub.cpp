@@ -67,7 +67,7 @@ void ImuPub::ImuPubCallback()
         imu_msg.linear_acceleration_covariance[i] = 0;
     }
 
-    imu_msg.header.frame_id = "base_link";
+    imu_msg.header.frame_id = "imu_link";
     imu_msg.header.stamp    = this->get_clock()->now();
     imu_pub_->publish(imu_msg);
 }

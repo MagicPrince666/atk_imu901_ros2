@@ -17,4 +17,5 @@ def generate_launch_description():
 
     return LaunchDescription([
         Node(namespace='/', package='atk_imu901', executable='atk_imu901_node', name='atk_imu901_node', parameters=[imu_cfg], output='screen'),
+        Node(package='tf2_ros', executable='static_transform_publisher', arguments=['0', '0', '0.02','0', '0', '0', '1','base_link','imu_link']),
     ])
