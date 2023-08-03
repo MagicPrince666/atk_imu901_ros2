@@ -48,9 +48,10 @@ void ImuPub::ImuPubCallback()
         atk_ms901m_quaternion_data_t quaternion_dat;
         atk_ms901_->GetGyroAccelerometer(&gyro_dat, &accelerometer_dat, 100); /* 获取陀螺仪、加速度计数据 */
         atk_ms901_->GetQuaternion(&quaternion_dat, 100);
-        RCLCPP_INFO(this->get_logger(), "attitude = [%f,%f,%f]", attitude_dat.roll, attitude_dat.pitch, attitude_dat.yaw);
-        RCLCPP_INFO(this->get_logger(), "gyro = [%f,%f,%f]", gyro_dat.x, gyro_dat.y, gyro_dat.z);
-        RCLCPP_INFO(this->get_logger(), "accelerometer = [%f,%f,%f]", accelerometer_dat.x, accelerometer_dat.y, accelerometer_dat.z);
+        RCLCPP_INFO(this->get_logger(), "attitude\t gyro\t accelerometer\n[%f,%f,%f]\t[%f,%f,%f]\t[%f,%f,%f]", 
+        attitude_dat.roll, attitude_dat.pitch, attitude_dat.yaw,
+        gyro_dat.x, gyro_dat.y, gyro_dat.z,
+        accelerometer_dat.x, accelerometer_dat.y, accelerometer_dat.z);
         
         imu_msg.orientation.w         = quaternion_dat.w;
         imu_msg.orientation.x         = quaternion_dat.x;
