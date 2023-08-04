@@ -6,6 +6,8 @@
 #include "atk_imu901/imu_pub.h"
 #include "rclcpp/rclcpp.hpp"
 
+#define ATK_IMU_DEBUG 0
+
 ImuPub::ImuPub() : rclcpp::Node("imu901m")
 {
     std::string port;
@@ -41,18 +43,22 @@ void ImuPub::ImuPubCallback()
     sensor_msgs::msg::Imu imu_msg;
 
     if (atk_ms901_) {
-        atk_ms901m_attitude_data_t attitude_dat;                              /* 姿态角数据 */
         atk_ms901m_gyro_data_t gyro_dat;                                      /* 陀螺仪数据 */
         atk_ms901m_accelerometer_data_t accelerometer_dat;                    /* 加速度计数据 */
         atk_ms901m_quaternion_data_t quaternion_dat;
+#if ATK_IMU_DEBUG
+        atk_ms901m_attitude_data_t attitude_dat;                              /* 姿态角数据 */
 
-        // atk_ms901_->GetAttitude(&attitude_dat, 100);                          /* 获取姿态角数据 */
+        atk_ms901_->GetAttitude(&attitude_dat, 100);                          /* 获取姿态角数据 */
+#endif
         atk_ms901_->GetGyroAccelerometer(&gyro_dat, &accelerometer_dat, 100); /* 获取陀螺仪、加速度计数据 */
         atk_ms901_->GetQuaternion(&quaternion_dat, 100);
-        // RCLCPP_INFO(this->get_logger(), "attitude\t gyro\t accelerometer\n[%f,%f,%f]\t[%f,%f,%f]\t[%f,%f,%f]",
-        //             attitude_dat.roll, attitude_dat.pitch, attitude_dat.yaw,
-        //             gyro_dat.x, gyro_dat.y, gyro_dat.z,
-        //             accelerometer_dat.x, accelerometer_dat.y, accelerometer_dat.z);
+#if ATK_IMU_DEBUG
+        RCLCPP_INFO(this->get_logger(), "attitude\t gyro\t accelerometer\n[%f,%f,%f]\t[%f,%f,%f]\t[%f,%f,%f]",
+                    attitude_dat.roll, attitude_dat.pitch, attitude_dat.yaw,
+                    gyro_dat.x, gyro_dat.y, gyro_dat.z,
+                    accelerometer_dat.x, accelerometer_dat.y, accelerometer_dat.z);
+#endif
 
         imu_msg.orientation.w         = quaternion_dat.w;
         imu_msg.orientation.x         = quaternion_dat.x;
