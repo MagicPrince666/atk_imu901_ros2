@@ -25,8 +25,8 @@
 #include <mutex>
 #include <thread>
 
-#include "serial.h"
 #include "circular_queue.h"
+#include "serial.h"
 
 /* ATK-MS901M UART通讯帧数据最大长度 */
 #define ATK_MS901M_FRAME_DAT_MAX_SIZE 28
@@ -276,6 +276,7 @@ private:
     uint8_t SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period, uint32_t timeout);         /* 设置ATK-MS901M指定端口PWM周期 */
     uint8_t SetBaudRate(UartBaudRate rate);                                                      /* 设置ATK-MS901波特率 */
     uint8_t SetFrequency(Frequency freq);                                                        /* 设置ATK-MS901上报频率 */
+    uint8_t SaveFlash();                                                                         /* 保存配置到flash */
 
     void ReadBuff(const uint8_t *data, const uint32_t len);
     std::string Bytes2String(const uint8_t *data, uint32_t len);

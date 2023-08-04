@@ -18,8 +18,8 @@
  ****************************************************************************************************
  */
 
-#include <cstring>
 #include <cmath>
+#include <cstring>
 #include <unistd.h>
 
 #include "rclcpp/rclcpp.hpp"
@@ -44,6 +44,7 @@ uint8_t AtkMs901m::Init(std::string uart, uint32_t baudrate)
 
     // SetBaudRate(UART_BAUD_RATE_921600);
     // SetFrequency(FREQUENCY_100);
+    // SaveFlash();
     // exit(0);
 
     memset((uint8_t *)&atk_ms901m_buffer_, 0, sizeof(atk_ms901m_buffer_));
@@ -158,7 +159,7 @@ void AtkMs901m::ReadBuff(const uint8_t *data, const uint32_t len)
  */
 uint8_t AtkMs901m::GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t id_type, uint32_t timeout)
 {
-    uint16_t timeout_index                 = 0;
+    uint16_t timeout_index = 0;
 
     while (rclcpp::ok()) {
         if (timeout == 0) {
@@ -178,12 +179,12 @@ uint8_t AtkMs901m::GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t i
         atk_ms901m_frame_t recv_frame = atk_ms901m_frame_.front();
         atk_ms901m_frame_.pop();
 
-        if(id_type != ATK_MS901M_FRAME_ID_TYPE_UPLOAD && id_type != ATK_MS901M_FRAME_ID_TYPE_ACK) {
+        if (id_type != ATK_MS901M_FRAME_ID_TYPE_UPLOAD && id_type != ATK_MS901M_FRAME_ID_TYPE_ACK) {
             // spdlog::info("id_type = {} not found", id_type);
             return ATK_MS901M_EINVAL;
         }
 
-        if(id == recv_frame.id) {
+        if (id == recv_frame.id) {
             memcpy(frame, &recv_frame, sizeof(recv_frame));
             break;
         }
@@ -351,9 +352,9 @@ uint8_t AtkMs901m::GetGyroAccelerometer(atk_ms901m_gyro_data_t *gyro_dat, atk_ms
         accelerometer_dat->raw.y = (int16_t)(frame.dat[3] << 8) | frame.dat[2];
         accelerometer_dat->raw.z = (int16_t)(frame.dat[5] << 8) | frame.dat[4];
 
-        accelerometer_dat->x = (float)accelerometer_dat->raw.x / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
-        accelerometer_dat->y = (float)accelerometer_dat->raw.y / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
-        accelerometer_dat->z = (float)accelerometer_dat->raw.z / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
+        accelerometer_dat->x = (float)accelerometer_dat->raw.x / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer];
+        accelerometer_dat->y = (float)accelerometer_dat->raw.y / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer];
+        accelerometer_dat->z = (float)accelerometer_dat->raw.z / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer];
     }
 
     return ATK_MS901M_EOK;
@@ -754,5 +755,19 @@ uint8_t AtkMs901m::SetFrequency(Frequency freq)
     buf[5] = buf[0] + buf[1] + buf[2] + buf[3] + buf[4];
     serial_comm_->SendBuffer(buf, 6);
 
+    return ATK_MS901M_EOK;
+}
+
+uint8_t AtkMs901m::SaveFlash()
+{
+    uint8_t buf[6];
+
+    buf[0] = ATK_MS901M_FRAME_HEAD_L;
+    buf[1] = ATK_MS901M_FRAME_HEAD_ACK_H;
+    buf[2] = ATK_MS901M_FRAME_ID_REG_SAVE;
+    buf[3] = 0x01;
+    buf[4] = 0x0;
+    buf[5] = buf[0] + buf[1] + buf[2] + buf[3] + buf[4];
+    serial_comm_->SendBuffer(buf, 6);
     return ATK_MS901M_EOK;
 }

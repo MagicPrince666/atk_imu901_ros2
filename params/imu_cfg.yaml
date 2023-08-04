@@ -3,6 +3,6 @@
     # IMU端口
     imu_port: "/dev/ttyS8"
     # 波特率
-    baudrate: 115200
+    baudrate: 921600
     # 话题名称
     topic: "imu_data"
