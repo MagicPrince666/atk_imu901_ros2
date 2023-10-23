@@ -4,9 +4,9 @@
 #include <unistd.h>
 
 #include "atk_imu901/imu_pub.h"
+#include "atk_imu901/atk_ms901m.h"
+#include "atk_imu901/zyf176ex.h"
 #include "rclcpp/rclcpp.hpp"
-
-#define ATK_IMU_DEBUG 0
 
 ImuPub::ImuPub() : rclcpp::Node("imu901m")
 {
@@ -25,12 +25,16 @@ ImuPub::ImuPub() : rclcpp::Node("imu901m")
     this->get_parameter("topic", topic);
     RCLCPP_INFO(this->get_logger(), "topic = %s", topic.c_str());
 
-    atk_ms901_ = std::make_shared<AtkMs901m>();
-    atk_ms901_->Init(port, baudrate);
+    this->declare_parameter("imu_frame_id", "imu");
+    this->get_parameter("imu_frame_id", frame_id_);
+    RCLCPP_INFO(this->get_logger(), "frame_id = %s", frame_id_.c_str());
+
+    atk_ms901_ = std::make_shared<AtkMs901m>(port, baudrate);
+    atk_ms901_->Init();
 
     imu_pub_   = this->create_publisher<sensor_msgs::msg::Imu>(topic, 10);
     imu_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(50), std::bind(&ImuPub::ImuPubCallback, this));
+        std::chrono::milliseconds(10), std::bind(&ImuPub::ImuPubCallback, this));
 }
 
 ImuPub::~ImuPub()
@@ -43,33 +47,18 @@ void ImuPub::ImuPubCallback()
     sensor_msgs::msg::Imu imu_msg;
 
     if (atk_ms901_) {
-        atk_ms901m_gyro_data_t gyro_dat;                                      /* 陀螺仪数据 */
-        atk_ms901m_accelerometer_data_t accelerometer_dat;                    /* 加速度计数据 */
-        atk_ms901m_quaternion_data_t quaternion_dat;
-#if ATK_IMU_DEBUG
-        atk_ms901m_attitude_data_t attitude_dat;                              /* 姿态角数据 */
+        Imu get_imu = atk_ms901_->GetImuData();
 
-        atk_ms901_->GetAttitude(&attitude_dat, 100);                          /* 获取姿态角数据 */
-#endif
-        atk_ms901_->GetGyroAccelerometer(&gyro_dat, &accelerometer_dat, 100); /* 获取陀螺仪、加速度计数据 */
-        atk_ms901_->GetQuaternion(&quaternion_dat, 100);
-#if ATK_IMU_DEBUG
-        RCLCPP_INFO(this->get_logger(), "attitude\t gyro\t accelerometer\n[%f,%f,%f]\t[%f,%f,%f]\t[%f,%f,%f]",
-                    attitude_dat.roll, attitude_dat.pitch, attitude_dat.yaw,
-                    gyro_dat.x, gyro_dat.y, gyro_dat.z,
-                    accelerometer_dat.x, accelerometer_dat.y, accelerometer_dat.z);
-#endif
-
-        imu_msg.orientation.w         = quaternion_dat.w;
-        imu_msg.orientation.x         = quaternion_dat.x;
-        imu_msg.orientation.y         = quaternion_dat.y;
-        imu_msg.orientation.z         = quaternion_dat.z;
-        imu_msg.angular_velocity.x    = gyro_dat.x;
-        imu_msg.angular_velocity.y    = gyro_dat.y;
-        imu_msg.angular_velocity.z    = gyro_dat.z;
-        imu_msg.linear_acceleration.x = accelerometer_dat.x;
-        imu_msg.linear_acceleration.y = accelerometer_dat.y;
-        imu_msg.linear_acceleration.z = accelerometer_dat.z;
+        imu_msg.orientation.w         = get_imu.orientation.w;
+        imu_msg.orientation.x         = get_imu.orientation.x;
+        imu_msg.orientation.y         = get_imu.orientation.y;
+        imu_msg.orientation.z         = get_imu.orientation.z;
+        imu_msg.angular_velocity.x    = get_imu.angular_velocity.x;
+        imu_msg.angular_velocity.y    = get_imu.angular_velocity.y;
+        imu_msg.angular_velocity.z    = get_imu.angular_velocity.z;
+        imu_msg.linear_acceleration.x = get_imu.linear_acceleration.x;
+        imu_msg.linear_acceleration.y = get_imu.linear_acceleration.y;
+        imu_msg.linear_acceleration.z = get_imu.linear_acceleration.z;
     }
 
     for (size_t i = 0; i < 9; i++) {
@@ -78,7 +67,7 @@ void ImuPub::ImuPubCallback()
         imu_msg.linear_acceleration_covariance[i] = 0;
     }
 
-    imu_msg.header.frame_id = "imu_link";
+    imu_msg.header.frame_id = frame_id_;
     imu_msg.header.stamp    = this->get_clock()->now();
     imu_pub_->publish(imu_msg);
 }

@@ -1,6 +1,6 @@
 /**
  * @file ring_buffer.h
- * @author 黄李全 (846863428@qq.com)
+ * @author Leo Huang (846863428@qq.com)
  * @brief 
  * @version 0.1
  * @date 2023-07-17

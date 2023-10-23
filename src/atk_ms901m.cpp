@@ -18,133 +18,92 @@
  ****************************************************************************************************
  */
 
-#include <cmath>
+#include "atk_imu901/atk_ms901m.h"
+#include "rclcpp/rclcpp.hpp"
+
 #include <cstring>
 #include <unistd.h>
 
-#include "rclcpp/rclcpp.hpp"
-
-#include "atk_imu901/atk_ms901m.h"
-#include "atk_imu901/serial.h"
-
-AtkMs901m::AtkMs901m() : atk_ms901m_frame_(128) {}
+AtkMs901m::AtkMs901m(std::string port, uint32_t rate)
+    : ImuInterface(port, rate)
+{
+    /* ATK-MS601M UART初始化 */
+    // 创建通讯部件工厂,这一步可以优化到从lunch配置文件选择初始化不同的通讯部件工厂
+    std::shared_ptr<CommFactory> factory(new SerialComm());
+    // 通过工厂方法创建通讯产品
+    std::shared_ptr<Communication> serial(factory->CreateCommTarget(imu_port_, baud_rate_, false));
+    serial_comm_ = serial;
+}
 
 AtkMs901m::~AtkMs901m() {}
 
-uint8_t AtkMs901m::Init(std::string uart, uint32_t baudrate)
+bool AtkMs901m::Init()
 {
     uint8_t ret;
 
-    /* ATK-MS601M UART初始化 */
-    // 创建通讯部件工厂,这一步可以优化到从lunch配置文件选择初始化不同的通讯部件工厂
-    std::unique_ptr<CommFactory> factory(new SerialComm());
-    // 通过工厂方法创建通讯产品
-    std::shared_ptr<Communication> serial(factory->CreateCommTarget(uart, baudrate, false));
-    serial_comm_ = serial;
-
-    // SetBaudRate(UART_BAUD_RATE_921600);
-    // SetFrequency(FREQUENCY_100);
-    // SaveFlash();
-    // exit(0);
-
-    memset((uint8_t *)&atk_ms901m_buffer_, 0, sizeof(atk_ms901m_buffer_));
-
-    serial_comm_->AddCallback(std::bind(&AtkMs901m::ReadBuff, this, std::placeholders::_1, std::placeholders::_2));
-
     /* 获取ATK-MS901M陀螺仪满量程 */
     ret = ReadRegById(ATK_MS901M_FRAME_ID_REG_GYROFSR, &atk_ms901m_fsr_.gyro, 100);
-    // spdlog::info("gyro = {}", atk_ms901m_fsr_.gyro);
     if (ret == 0) {
-        return ATK_MS901M_ERROR;
+        return false;
     }
 
     /* 获取ATK-MS901M加速度计满量程 */
     ret = ReadRegById(ATK_MS901M_FRAME_ID_REG_ACCFSR, &atk_ms901m_fsr_.accelerometer, 100);
-    // spdlog::info("accelerometer = {}", atk_ms901m_fsr_.accelerometer);
     if (ret == 0) {
-        return ATK_MS901M_ERROR;
+        return false;
     }
 
-    return ATK_MS901M_EOK;
+    return true;
 }
 
-std::string AtkMs901m::Bytes2String(const uint8_t *data, uint32_t len)
+Imu AtkMs901m::GetImuData()
 {
-    char temp[512];
-    std::string str("");
-    for (size_t i = 0; i < len; i++) {
-        sprintf(temp, "%02x ", data[i]);
-        str.append(temp);
-    }
-    return str;
+    std::lock_guard<std::mutex> mylock_guard(data_lock_);
+    Imu data;
+    // atk_ms901m_attitude_data_t attitude_dat;           /* 姿态角数据 */
+    atk_ms901m_gyro_data_t gyro_dat;                   /* 陀螺仪数据 */
+    atk_ms901m_accelerometer_data_t accelerometer_dat; /* 加速度计数据 */
+    atk_ms901m_quaternion_data_t quaternion_dat;
+
+    // GetAttitude(&attitude_dat, 100);                          /* 获取姿态角数据 */
+    GetGyroAccelerometer(&gyro_dat, &accelerometer_dat, 100); /* 获取陀螺仪、加速度计数据 */
+    GetQuaternion(&quaternion_dat, 100);
+
+    data.orientation.w         = quaternion_dat.q0;
+    data.orientation.x         = quaternion_dat.q1;
+    data.orientation.y         = quaternion_dat.q2;
+    data.orientation.z         = quaternion_dat.q3;
+    data.angular_velocity.x    = gyro_dat.x;
+    data.angular_velocity.y    = gyro_dat.y;
+    data.angular_velocity.z    = gyro_dat.z;
+    data.linear_acceleration.x = accelerometer_dat.x;
+    data.linear_acceleration.y = accelerometer_dat.y;
+    data.linear_acceleration.z = accelerometer_dat.z;
+    return data;
 }
 
-void AtkMs901m::ReadBuff(const uint8_t *data, const uint32_t len)
+atk_ms901m_frame_t *AtkMs901m::SearchHearLE(uint8_t *data, uint32_t total_len, int &index)
 {
-    // spdlog::info("Serial ={}", Bytes2String(data, len));
-    // rx_ring_buffer_.RingBufferIn(data, len);
-    std::lock_guard<std::mutex> lck(imu_mtx_);
-    if (len > (sizeof(atk_ms901m_buffer_.rx_buffer) - atk_ms901m_buffer_.size)) {
-        // spdlog::warn("Buff is full len = {} buff size = {}", len, atk_ms901m_buffer_.size);
-        atk_ms901m_buffer_.size = 0;
-    }
-
-    // spdlog::info("start handle");
-    memcpy(atk_ms901m_buffer_.rx_buffer + atk_ms901m_buffer_.size, data, len);
-    atk_ms901m_buffer_.size += len;
-
-    uint32_t lenght = atk_ms901m_buffer_.size;
-    for (uint32_t i = 0; i < lenght; i++) {
-        uint8_t *imu_buffer_ptr = atk_ms901m_buffer_.rx_buffer + i;
-        uint32_t buf_size       = lenght - i;
-        // 长度不足，跳过
-        if (atk_ms901m_buffer_.size < 6) {
-            // spdlog::info("Handle done size = {}", atk_ms901m_buffer_.size);
-            uint8_t buffer[sizeof(atk_ms901m_buffer_.rx_buffer)];
-            // 剩余未处理数据拷贝到临时变量
-            memcpy(buffer, imu_buffer_ptr, buf_size);
-            // 覆盖掉原来的buff
-            memcpy(atk_ms901m_buffer_.rx_buffer, buffer, buf_size);
-            // 更新长度
-            atk_ms901m_buffer_.size = buf_size;
-            break;
-        }
-        if (imu_buffer_ptr[0] == 0x55) {
-            // 长度明显不符，跳过
-            if (imu_buffer_ptr[3] > ATK_MS901M_FRAME_DAT_MAX_SIZE) {
-                continue;
+    atk_ms901m_frame_t *res_tmp = nullptr;
+    for (uint32_t i = 0; i < total_len; i++) {
+        // 剩余长度大于一个包长度，说明还有协议数据包可以处理
+        if ((total_len - i) >= sizeof(atk_ms901m_frame_t)) {
+            // 一个字节一个字节的偏移，直到查找到协议头
+            res_tmp = (atk_ms901m_frame_t *)(data + i);
+            // 找到协议头
+            if (res_tmp->head_l == ATK_MS901M_FRAME_HEAD_L) {
+                if (res_tmp->head_h == ATK_MS901M_FRAME_HEAD_UPLOAD_H || res_tmp->head_h == ATK_MS901M_FRAME_HEAD_ACK_H) {
+                    index = i; // 记录偏移地址
+                    break;
+                }
             }
-            uint32_t imu_buf_size = imu_buffer_ptr[3] + 4;
-            // 判断剩余的buf长度是否足够
-            if (imu_buf_size > atk_ms901m_buffer_.size) {
-                // spdlog::info("imu size = {} buff size = {}", imu_buf_size, atk_ms901m_buffer_.size);
-                uint8_t buffer[sizeof(atk_ms901m_buffer_.rx_buffer)];
-                // 剩余未处理数据拷贝到临时变量
-                memcpy(buffer, imu_buffer_ptr, buf_size);
-                // 覆盖掉原来的buff
-                memcpy(atk_ms901m_buffer_.rx_buffer, buffer, buf_size);
-                // 更新长度
-                atk_ms901m_buffer_.size = buf_size;
-                break;
-            }
-            uint8_t sum = 0;
-            uint32_t j  = 0;
-            for (; j < imu_buf_size; j++) {
-                sum += imu_buffer_ptr[j];
-            }
-            // 确认是一整数据，放入队列
-            if (sum == imu_buffer_ptr[j]) {
-                atk_ms901m_frame_t frame = *(atk_ms901m_frame_t *)(imu_buffer_ptr);
-                frame.check_sum          = imu_buffer_ptr[j];
-                // spdlog::info("frame = {}", Bytes2String(imu_buffer_ptr, frame.len + 5));
-                atk_ms901m_frame_.push(frame);
-                atk_ms901m_buffer_.size -= frame.len + 5;
-                i += frame.len + 4; // 避免重复扫描
-                continue;
-            }
+        } else {
+            return nullptr;
         }
     }
+    return res_tmp;
 }
+
 /**
  * @brief       通过指定帧ID获取接收到的数据帧
  * @param       frame  : 接收到的数据帧
@@ -159,14 +118,18 @@ void AtkMs901m::ReadBuff(const uint8_t *data, const uint32_t len)
  */
 uint8_t AtkMs901m::GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t id_type, uint32_t timeout)
 {
-    uint16_t timeout_index = 0;
+#if 1
+    uint8_t dat;
+    atk_ms901m_handle_state_t handle_state = MS901_WAIT_FOR_HEAD_L;
+    uint8_t dat_index                      = 0;
+    uint16_t timeout_index                 = 0;
 
-    while (rclcpp::ok()) {
+    while (1) {
         if (timeout == 0) {
             return ATK_MS901M_ETIMEOUT;
         }
 
-        if (atk_ms901m_frame_.size() == 0) {
+        if (serial_comm_->ReadBuffer(&dat, 1) == 0) {
             usleep(1000);
             timeout_index++;
             if (timeout_index == 1000) {
@@ -176,20 +139,158 @@ uint8_t AtkMs901m::GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t i
             continue;
         }
 
-        atk_ms901m_frame_t recv_frame = atk_ms901m_frame_.front();
-        atk_ms901m_frame_.pop();
-
-        if (id_type != ATK_MS901M_FRAME_ID_TYPE_UPLOAD && id_type != ATK_MS901M_FRAME_ID_TYPE_ACK) {
-            // spdlog::info("id_type = {} not found", id_type);
-            return ATK_MS901M_EINVAL;
+        switch (handle_state) {
+        case MS901_WAIT_FOR_HEAD_L: {
+            if (dat == ATK_MS901M_FRAME_HEAD_L) {
+                frame->head_l    = dat;
+                frame->check_sum = frame->head_l;
+                handle_state     = MS901_WAIT_FOR_HEAD_H;
+            } else {
+                handle_state = MS901_WAIT_FOR_HEAD_L;
+            }
+            break;
+        }
+        case MS901_WAIT_FOR_HEAD_H: {
+            switch (id_type) {
+            case ATK_MS901M_FRAME_ID_TYPE_UPLOAD: {
+                if (dat == ATK_MS901M_FRAME_HEAD_UPLOAD_H) {
+                    frame->head_h = dat;
+                    frame->check_sum += frame->head_h;
+                    handle_state = MS901_WAIT_FOR_ID;
+                } else {
+                    handle_state = MS901_WAIT_FOR_HEAD_L;
+                }
+                break;
+            }
+            case ATK_MS901M_FRAME_ID_TYPE_ACK: {
+                if (dat == ATK_MS901M_FRAME_HEAD_ACK_H) {
+                    frame->head_h = dat;
+                    frame->check_sum += frame->head_h;
+                    handle_state = MS901_WAIT_FOR_ID;
+                } else {
+                    handle_state = MS901_WAIT_FOR_HEAD_L;
+                }
+                break;
+            }
+            default: {
+                return ATK_MS901M_EINVAL;
+            }
+            }
+            break;
+        }
+        case MS901_WAIT_FOR_ID: {
+            if (dat == id) {
+                frame->id = dat;
+                frame->check_sum += frame->id;
+                handle_state = MS901_WAIT_FOR_LEN;
+            } else {
+                handle_state = MS901_WAIT_FOR_HEAD_L;
+            }
+            break;
+        }
+        case MS901_WAIT_FOR_LEN: {
+            if (dat > ATK_MS901M_FRAME_DAT_MAX_SIZE) {
+                handle_state = MS901_WAIT_FOR_HEAD_L;
+            } else {
+                frame->len = dat;
+                frame->check_sum += frame->len;
+                if (frame->len == 0) {
+                    handle_state = MS901_WAIT_FOR_SUM;
+                } else {
+                    handle_state = MS901_WAIT_FOR_DAT;
+                }
+            }
+            break;
+        }
+        case MS901_WAIT_FOR_DAT: {
+            frame->dat[dat_index] = dat;
+            frame->check_sum += frame->dat[dat_index];
+            dat_index++;
+            if (dat_index == frame->len) {
+                dat_index    = 0;
+                handle_state = MS901_WAIT_FOR_SUM;
+            }
+            break;
+        }
+        case MS901_WAIT_FOR_SUM: {
+            if (dat == frame->check_sum) {
+                return ATK_MS901M_EOK;
+            }
+            handle_state = MS901_WAIT_FOR_HEAD_L;
+            break;
+        }
+        default: {
+            handle_state = MS901_WAIT_FOR_HEAD_L;
+            break;
+        }
+        }
+        usleep(1000);
+        timeout_index++;
+        if (timeout_index == 1000) {
+            timeout_index = 0;
+            timeout--;
+        }
+    }
+#else
+    if (timeout == 0) {
+        return ATK_MS901M_ETIMEOUT;
+    }
+    int len = serial_comm_->ReadBuffer(atk_ms901m_buffer_.rx_buffer + atk_ms901m_buffer_.size, sizeof(atk_ms901m_buffer_.rx_buffer) - atk_ms901m_buffer_.size);
+    if (len < 1) {
+        // 没有有效数据直接返回
+        return ATK_MS901M_ETIMEOUT;
+    }
+    atk_ms901m_buffer_.size += len; // 更新buff长度
+    if (atk_ms901m_buffer_.size < sizeof(atk_ms901m_frame_t)) {
+        return ATK_MS901M_ETIMEOUT;
+    }
+    uint8_t *ros_rx_buffer_ptr = atk_ms901m_buffer_.rx_buffer;
+    while (rclcpp::ok()) {
+        int index                   = 0;
+        atk_ms901m_frame_t *res_tmp = SearchHearLE(ros_rx_buffer_ptr, atk_ms901m_buffer_.size, index);
+        if (res_tmp == nullptr) {
+            // 已经处理完所有可识别的包
+            return ATK_MS901M_EOK;
+        } else {
+            // 重置指针位置指向包头位置和更新长度
+            if (index) {
+                ros_rx_buffer_ptr += index;
+                atk_ms901m_buffer_.size -= index;
+            }
         }
 
-        if (id == recv_frame.id) {
-            memcpy(frame, &recv_frame, sizeof(recv_frame));
-            break;
+        if (res_tmp->id == id) {
+            std::lock_guard<std::mutex> mylock_guard(data_lock_);
+            uint8_t sum = res_tmp->head_l + res_tmp->head_h + res_tmp->id + res_tmp->len;
+            for (uint32_t i = 0; i < res_tmp->len; i++) {
+                sum += res_tmp->dat[i];
+            }
+            if (sum == res_tmp->check_sum) {
+                memcpy(frame, res_tmp, res_tmp->len + 5);
+                atk_ms901m_buffer_.size -= res_tmp->len + 5;
+                uint8_t buffer[atk_ms901m_buffer_.size];
+                // 剩余未处理数据拷贝到临时变量
+                memcpy(buffer, ros_rx_buffer_ptr + res_tmp->len + 5, atk_ms901m_buffer_.size);
+                // 覆盖掉原来的buff
+                memcpy(atk_ms901m_buffer_.rx_buffer, buffer, atk_ms901m_buffer_.size);
+
+            } else {
+                continue;
+            }
+
+            if (id_type == ATK_MS901M_FRAME_ID_TYPE_UPLOAD) {
+                return ATK_MS901M_EOK;
+            } else if (id_type == ATK_MS901M_FRAME_ID_TYPE_ACK) {
+                return ATK_MS901M_EOK;
+            } else {
+                return ATK_MS901M_EINVAL;
+            }
+        } else {
+            continue;
         }
     }
     return ATK_MS901M_EOK;
+#endif
 }
 
 /**
@@ -307,10 +408,10 @@ uint8_t AtkMs901m::GetQuaternion(atk_ms901m_quaternion_data_t *quaternion_dat, u
         return ATK_MS901M_ERROR;
     }
 
-    quaternion_dat->w = (float)((int16_t)(frame.dat[1] << 8) | frame.dat[0]) / 32768.0;
-    quaternion_dat->x = (float)((int16_t)(frame.dat[3] << 8) | frame.dat[2]) / 32768.0;
-    quaternion_dat->y = (float)((int16_t)(frame.dat[5] << 8) | frame.dat[4]) / 32768.0;
-    quaternion_dat->z = (float)((int16_t)(frame.dat[7] << 8) | frame.dat[6]) / 32768.0;
+    quaternion_dat->q0 = (float)((int16_t)(frame.dat[1] << 8) | frame.dat[0]) / 32768.0;
+    quaternion_dat->q1 = (float)((int16_t)(frame.dat[3] << 8) | frame.dat[2]) / 32768.0;
+    quaternion_dat->q2 = (float)((int16_t)(frame.dat[5] << 8) | frame.dat[4]) / 32768.0;
+    quaternion_dat->q3 = (float)((int16_t)(frame.dat[7] << 8) | frame.dat[6]) / 32768.0;
 
     return ATK_MS901M_EOK;
 }
@@ -342,9 +443,9 @@ uint8_t AtkMs901m::GetGyroAccelerometer(atk_ms901m_gyro_data_t *gyro_dat, atk_ms
         gyro_dat->raw.y = (int16_t)(frame.dat[9] << 8) | frame.dat[8];
         gyro_dat->raw.z = (int16_t)(frame.dat[11] << 8) | frame.dat[10];
 
-        gyro_dat->x = (float)gyro_dat->raw.x / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] / 180.0 * M_PI;
-        gyro_dat->y = (float)gyro_dat->raw.y / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] / 180.0 * M_PI;
-        gyro_dat->z = (float)gyro_dat->raw.z / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] / 180.0 * M_PI;
+        gyro_dat->x = (float)gyro_dat->raw.x / 32768.0 * 2000 / 180.0 * M_PI;
+        gyro_dat->y = (float)gyro_dat->raw.y / 32768.0 * 2000 / 180.0 * M_PI;
+        gyro_dat->z = (float)gyro_dat->raw.z / 32768.0 * 2000 / 180.0 * M_PI;
     }
 
     if (accelerometer_dat != NULL) {
@@ -352,9 +453,9 @@ uint8_t AtkMs901m::GetGyroAccelerometer(atk_ms901m_gyro_data_t *gyro_dat, atk_ms
         accelerometer_dat->raw.y = (int16_t)(frame.dat[3] << 8) | frame.dat[2];
         accelerometer_dat->raw.z = (int16_t)(frame.dat[5] << 8) | frame.dat[4];
 
-        accelerometer_dat->x = (float)accelerometer_dat->raw.x / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer];
-        accelerometer_dat->y = (float)accelerometer_dat->raw.y / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer];
-        accelerometer_dat->z = (float)accelerometer_dat->raw.z / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer];
+        accelerometer_dat->x = (float)accelerometer_dat->raw.x / 32768.0 * 16 * 9.8;
+        accelerometer_dat->y = (float)accelerometer_dat->raw.y / 32768.0 * 16 * 9.8;
+        accelerometer_dat->z = (float)accelerometer_dat->raw.z / 32768.0 * 16 * 9.8;
     }
 
     return ATK_MS901M_EOK;
@@ -725,49 +826,5 @@ uint8_t AtkMs901m::SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period, uin
         return ATK_MS901M_ERROR;
     }
 
-    return ATK_MS901M_EOK;
-}
-
-uint8_t AtkMs901m::SetBaudRate(UartBaudRate rate)
-{
-    uint8_t buf[6];
-
-    buf[0] = ATK_MS901M_FRAME_HEAD_L;
-    buf[1] = ATK_MS901M_FRAME_HEAD_ACK_H;
-    buf[2] = ATK_MS901M_FRAME_ID_REG_BAUD;
-    buf[3] = 0x01;
-    buf[4] = rate;
-    buf[5] = buf[0] + buf[1] + buf[2] + buf[3] + buf[4];
-    serial_comm_->SendBuffer(buf, 6);
-
-    return ATK_MS901M_EOK;
-}
-
-uint8_t AtkMs901m::SetFrequency(Frequency freq)
-{
-    uint8_t buf[6];
-
-    buf[0] = ATK_MS901M_FRAME_HEAD_L;
-    buf[1] = ATK_MS901M_FRAME_HEAD_ACK_H;
-    buf[2] = ATK_MS901M_FRAME_ID_REG_RETURNRATE;
-    buf[3] = 0x01;
-    buf[4] = freq;
-    buf[5] = buf[0] + buf[1] + buf[2] + buf[3] + buf[4];
-    serial_comm_->SendBuffer(buf, 6);
-
-    return ATK_MS901M_EOK;
-}
-
-uint8_t AtkMs901m::SaveFlash()
-{
-    uint8_t buf[6];
-
-    buf[0] = ATK_MS901M_FRAME_HEAD_L;
-    buf[1] = ATK_MS901M_FRAME_HEAD_ACK_H;
-    buf[2] = ATK_MS901M_FRAME_ID_REG_SAVE;
-    buf[3] = 0x01;
-    buf[4] = 0x0;
-    buf[5] = buf[0] + buf[1] + buf[2] + buf[3] + buf[4];
-    serial_comm_->SendBuffer(buf, 6);
     return ATK_MS901M_EOK;
 }

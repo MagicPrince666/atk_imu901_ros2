@@ -6,3 +6,5 @@
     baudrate: 921600
     # 话题名称
     topic: "imu_data"
+    # frame_id
+    imu_frame_id: "imu"

@@ -9,13 +9,14 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "rclcpp/rclcpp.hpp"
 #include "atk_imu901/serial.h"
 #include "atk_imu901/xepoll.h"
 
-
 Serial::Serial(std::string dev, const int baudrate, bool debug)
     : Communication(dev, baudrate, debug),
-      tx_ring_buffer_(128*1024) // 1M缓存
+      tx_ring_buffer_(128*1024), // 1M缓存
+      rx_ring_buffer_(128*1024)
 {
     uart_fd_ = OpenSerial();
     assert(uart_fd_ > 0);
@@ -152,82 +153,56 @@ void Serial::CloseSerial()
         return;
     }
     MY_EPOLL.EpollDel(uart_fd_);
-    close(uart_fd_);
     tcsetattr(uart_fd_, TCSANOW, &original_port_settings_);
+    close(uart_fd_);
     uart_fd_ = -1;
 }
 
-int Serial::ReadCallback()
+void Serial::ReadCallback()
 {
 #if 1
     uint8_t uart_rx_buf[DATA_LEN];
     int len = read(uart_fd_, uart_rx_buf, sizeof(uart_rx_buf));
     if (len > 0) {
-        if (debug_) { // 调试用
-            std::cout << Bytes2String(uart_rx_buf, len) << std::endl;
-        }
-        if (nullptr != read_function_) {
-            read_function_(uart_rx_buf, len);
-        }
+        rx_ring_buffer_.RingBufferIn(uart_rx_buf, len);
     }
-    return len;
 #else
     uint8_t uart_rx_buf[1024];
     int len = 0;
     do {
         len = read(uart_fd_, uart_rx_buf, sizeof(uart_rx_buf));
         if (len > 0) {
-            if (nullptr != read_function_) {
-                read_function_(uart_rx_buf, len);
-            }
+            rx_ring_buffer_.RingBufferIn(uart_rx_buf, len);
         }
     } while (len > 0);
-
-    return 0;
 #endif
 }
 
-std::string Serial::Bytes2String(uint8_t *data, uint32_t len)
+void Serial::WriteCallback()
 {
-    char temp[512];
-    std::string str("");
-    for (size_t i = 0; i < len; i++) {
-        sprintf(temp, "%02x ", data[i]);
-        str.append(temp);
-    }
-    return str;
-}
-
-int Serial::WriteCallback()
-{
-    int ret    = 0;
     int length = tx_ring_buffer_.RingBufferLen();
 
     if (length > 0) {
-        uint8_t uart_tx_buf[1024];
+        uint8_t uart_tx_buf[DATA_LEN];
         int size = tx_ring_buffer_.RingBufferOut(uart_tx_buf, length);
-        if (debug_) { // 调试用
-            std::cout << Bytes2String(uart_tx_buf, size) << std::endl;
-        }
-        ret = write(uart_fd_, uart_tx_buf, size);
+        write(uart_fd_, uart_tx_buf, size);
     }
-    return ret;
+}
+
+int Serial::ReadBuffer(uint8_t *const buffer, const int length)
+{
+    return rx_ring_buffer_.RingBufferOut(buffer, length);
 }
 
 int Serial::SendBuffer(const uint8_t *const buffer, const int length)
 {
     int ret = write(uart_fd_, buffer, length);
     if(ret < 0) {
-        //ROS_ERROR("Serial write with %d", ret);
+        // ROS_ERROR("Serial write with %d", ret);
         return -1;
     } else if(ret < length) {
-        //ROS_WARN("%d buff send, total:%d", ret, length);
+        // ROS_WARN("%d buff send, total:%d", ret, length);
     }
     return ret;
     // return tx_ring_buffer_.RingBufferIn(buffer, length);
-}
-
-void Serial::AddCallback(std::function<void(const uint8_t *, const uint32_t)> handler)
-{
-    read_function_ = handler;
 }

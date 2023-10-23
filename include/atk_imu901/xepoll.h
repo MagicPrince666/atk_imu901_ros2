@@ -1,6 +1,6 @@
 /**
  * @file epoll.h
- * @author 黄李全 (846863428@qq.com)
+ * @author Leo Huang (846863428@qq.com)
  * @brief 单例类 观察者模式
  * @version 0.1
  * @date 2022-11-18

@@ -1,6 +1,6 @@
 /**
  * @file imu_pub.h
- * @author 黄李全 (846863428@qq.com)
+ * @author Leo Huang (846863428@qq.com)
  * @brief 
  * @version 0.1
  * @date 2023-07-17
@@ -18,7 +18,7 @@
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 
-#include "atk_ms901m.h"
+#include "imu_interface.h"
 
 class ImuPub : public rclcpp::Node
 {
@@ -36,7 +36,8 @@ private:
 
     rclcpp::TimerBase::SharedPtr imu_timer_;
 
-    std::shared_ptr<AtkMs901m> atk_ms901_;
+    std::shared_ptr<ImuInterface> atk_ms901_;
+    std::string frame_id_;
 };
 
 #endif

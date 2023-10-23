@@ -21,17 +21,16 @@
 #ifndef __ATM_MS901M_H__
 #define __ATM_MS901M_H__
 
+#include "imu_interface.h"
+#include "serial.h"
 #include <memory>
 #include <mutex>
-#include <thread>
-
-#include "circular_queue.h"
-#include "serial.h"
 
 /* ATK-MS901M UART通讯帧数据最大长度 */
 #define ATK_MS901M_FRAME_DAT_MAX_SIZE 28
 
 /* ATK-MS901M UART通讯帧头 */
+#define ATK_MS901M_FRAME_HEAD 0x5555
 #define ATK_MS901M_FRAME_HEAD_L 0x55
 #define ATK_MS901M_FRAME_HEAD_UPLOAD_H 0x55 /* 高位主动上传帧头 */
 #define ATK_MS901M_FRAME_HEAD_ACK_H 0xAF    /* 高位应答帧头 */
@@ -79,48 +78,21 @@
 #define ATK_MS901M_FRAME_ID_TYPE_UPLOAD 0 /* ATK-MS901M主动上传帧ID */
 #define ATK_MS901M_FRAME_ID_TYPE_ACK 1    /* ATK-MS901M应答帧ID */
 
-enum UartBaudRate {
-    UART_BAUD_RATE_921600 = 0x00, /*      UART 通讯波特率为 921600bps          */
-    UART_BAUD_RATE_460800 = 0x01, /*      UART 通讯波特率为 460800bps          */
-    UART_BAUD_RATE_256000 = 0x02, /*      UART 通讯波特率为 256000bps          */
-    UART_BAUD_RATE_230400 = 0x03, /*      UART 通讯波特率为 230400bps          */
-    UART_BAUD_RATE_115200 = 0x04, /*      UART 通讯波特率为 115200bps          */
-    UART_BAUD_RATE_57600  = 0x05, /*      UART 通讯波特率为 57600bps           */
-    UART_BAUD_RATE_38400  = 0x06, /*      UART 通讯波特率为 38400bps           */
-    UART_BAUD_RATE_19200  = 0x07, /*      UART 通讯波特率为 19200bps           */
-    UART_BAUD_RATE_9600   = 0x08, /*      UART 通讯波特率为 9600bps            */
-    UART_BAUD_RATE_4800   = 0x09, /*      UART 通讯波特率为 4800bps            */
-    UART_BAUD_RATE_2400   = 0x0A, /*      UART 通讯波特率为 2400bps            */
-};
-
-enum Frequency {
-    FREQUENCY_250 = 0x00, /*      主动上报的速率为 250Hz          */
-    FREQUENCY_200 = 0x01, /*      主动上报的速率为 200Hz          */
-    FREQUENCY_125 = 0x02, /*      主动上报的速率为 125Hz          */
-    FREQUENCY_100 = 0x03, /*      主动上报的速率为 100Hz          */
-    FREQUENCY_50  = 0x04, /*      主动上报的速率为 50Hz          */
-    FREQUENCY_20  = 0x05, /*      主动上报的速率为 20Hz           */
-    FREQUENCY_10  = 0x06, /*      主动上报的速率为 10Hz           */
-    FREQUENCY_5   = 0x07, /*      主动上报的速率为 5Hz           */
-    FREQUENCY_2   = 0x08, /*      主动上报的速率为 2Hz            */
-    FREQUENCY_1   = 0x09, /*      主动上报的速率为 1Hz            */
-};
-
 /* 姿态角数据结构体 */
 typedef struct
 {
-    float roll;  /* 横滚角，单位：° */
-    float pitch; /* 俯仰角，单位：° */
-    float yaw;   /* 航向角，单位：° */
+    float roll;  /* 横滚角，单位：rad */
+    float pitch; /* 俯仰角，单位：rad */
+    float yaw;   /* 航向角，单位：rad */
 } atk_ms901m_attitude_data_t;
 
 /* 四元数数据结构体 */
 typedef struct
 {
-    float w; /* Q0 */
-    float x; /* Q1 */
-    float y; /* Q2 */
-    float z; /* Q3 */
+    float q0; /* Q0 */
+    float q1; /* Q1 */
+    float q2; /* Q2 */
+    float q3; /* Q3 */
 } atk_ms901m_quaternion_data_t;
 
 /* 陀螺仪数据结构体 */
@@ -132,9 +104,9 @@ typedef struct
         int16_t y; /* Y轴原始数据 */
         int16_t z; /* Z轴原始数据 */
     } raw;
-    float x;       /* X轴旋转速率，单位：dps */
-    float y;       /* Y轴旋转速率，单位：dps */
-    float z;       /* Z轴旋转速率，单位：dps */
+    float x; /* X轴旋转速率，单位：rad/s */
+    float y; /* Y轴旋转速率，单位：rad/s */
+    float z; /* Z轴旋转速率，单位：rad/s */
 } atk_ms901m_gyro_data_t;
 
 /* 加速度计数据结构体 */
@@ -146,9 +118,9 @@ typedef struct
         int16_t y; /* Y轴原始数据 */
         int16_t z; /* Z轴原始数据 */
     } raw;
-    float x;       /* X轴加速度，单位：G */
-    float y;       /* Y轴加速度，单位：G */
-    float z;       /* Z轴加速度，单位：G */
+    float x; /* X轴加速度，单位：G */
+    float y; /* Y轴加速度，单位：G */
+    float z; /* Z轴加速度，单位：G */
 } atk_ms901m_accelerometer_data_t;
 
 /* 磁力计数据结构体 */
@@ -179,21 +151,24 @@ typedef struct
 
 typedef struct
 {
-    uint8_t head_l                             = 0;   /* 低位帧头 */
-    uint8_t head_h                             = 0;   /* 高位帧头 */
+    uint8_t head_l = 0; /* 低位帧头 */
+    uint8_t head_h = 0; /* 高位帧头 */
+    // uint16_t head                              = 0;
     uint8_t id                                 = 0;   /* 帧ID */
     uint8_t len                                = 0;   /* 数据长度 */
     uint8_t dat[ATK_MS901M_FRAME_DAT_MAX_SIZE] = {0}; /* 数据 */
     uint8_t check_sum                          = 0;   /* 校验和 */
 } atk_ms901m_frame_t;                                 /* ATK-MS901M UART通讯帧结构体 */
 
-class AtkMs901m
+class AtkMs901m : public ImuInterface
 {
 public:
-    AtkMs901m();
-    ~AtkMs901m();
+    AtkMs901m(std::string port, uint32_t rate);
+    virtual ~AtkMs901m();
 
-    uint8_t Init(std::string uart, uint32_t baudrate);                                                                                    /* ATK-MS901M初始化 */
+    bool Init(); /* ATK-MS901M初始化 */
+    Imu GetImuData();
+
     uint8_t GetAttitude(atk_ms901m_attitude_data_t *attitude_dat, uint32_t timeout);                                                      /* 获取ATK-MS901M姿态角数据 */
     uint8_t GetQuaternion(atk_ms901m_quaternion_data_t *quaternion_dat, uint32_t timeout);                                                /* 获取ATK-MS901M四元数数据 */
     uint8_t GetGyroAccelerometer(atk_ms901m_gyro_data_t *gyro_dat, atk_ms901m_accelerometer_data_t *accelerometer_dat, uint32_t timeout); /* 获取ATK-MS901M陀螺仪、加速度计数据 */
@@ -250,16 +225,14 @@ private:
     const uint8_t atk_ms901m_accelerometer_fsr_table_[4] = {2, 4, 8, 16};
 
     std::shared_ptr<Communication> serial_comm_; // 通讯端口
-    CircularQueue<atk_ms901m_frame_t> atk_ms901m_frame_;
-
-    std::mutex imu_mtx_; // 互斥锁.
 
     struct
     {
-        uint8_t rx_buffer[1024];
+        uint8_t rx_buffer[256];
         uint32_t size; // buf长度
     } atk_ms901m_buffer_;
 
+    std::mutex data_lock_;
 private:
     /* 操作函数 */
     uint8_t GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t id_type, uint32_t timeout);
@@ -274,12 +247,14 @@ private:
     uint8_t SetPortPwmPulse(atk_ms901m_port_t port, uint16_t pulse, uint32_t timeout);           /* 设置ATK-MS901M指定端口PWM高电平的宽度 */
     uint8_t GetPortPwmPeriod(atk_ms901m_port_t port, uint16_t *period, uint32_t timeout);        /* 获取ATK-MS901M指定端口PWM周期 */
     uint8_t SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period, uint32_t timeout);         /* 设置ATK-MS901M指定端口PWM周期 */
-    uint8_t SetBaudRate(UartBaudRate rate);                                                      /* 设置ATK-MS901波特率 */
-    uint8_t SetFrequency(Frequency freq);                                                        /* 设置ATK-MS901上报频率 */
-    uint8_t SaveFlash();                                                                         /* 保存配置到flash */
-
-    void ReadBuff(const uint8_t *data, const uint32_t len);
-    std::string Bytes2String(const uint8_t *data, uint32_t len);
+    /**
+     * @brief 小端系统协议头查找算法
+     * @param data 包起始指针
+     * @param len 包长度
+     * @param index 地址偏移
+     * @return int32_t 包头所在偏移
+     */
+    atk_ms901m_frame_t *SearchHearLE(uint8_t *data, uint32_t len, int &index);
 };
 
 #endif
