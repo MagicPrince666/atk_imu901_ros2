@@ -1,9 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "ros2_imu/imu_pub.h"
 
-#define BACKTRACE_DEBUG 0
-
-#if BACKTRACE_DEBUG
+#ifdef BACKTRACE_DEBUG
 #include <execinfo.h>
 
 #define PRINT_SIZE_ 100
@@ -55,7 +53,7 @@ static void _signal_handler(int signum)
 
 int main(int argc, char *argv[])
 {
-#if BACKTRACE_DEBUG
+#ifdef BACKTRACE_DEBUG
     signal(SIGPIPE, _signal_handler); // SIGPIPE，管道破裂。
     signal(SIGSEGV, _signal_handler); // SIGSEGV，非法内存访问
     signal(SIGFPE, _signal_handler);  // SIGFPE，数学相关的异常，如被0除，浮点溢出，等等
