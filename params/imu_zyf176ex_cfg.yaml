@@ -1,13 +1,13 @@
 /ros2_imu_node:
   ros__parameters:
     # mode zyz/atk
-    imu_module: "atk"
+    imu_module: "zyz"
     # IMU端口
     imu_port: "/dev/ttyUSB0"
     # 波特率
-    baudrate: 921600
+    baudrate: 115200
     # 1帧数据长度
-    data_len: 121
+    data_len: 24
     # 话题名称
     topic: "imu_data"
     # frame_id
