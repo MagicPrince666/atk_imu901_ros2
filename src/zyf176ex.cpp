@@ -64,12 +64,12 @@ void Zyf176ex::ImuReader()
                     imu_data_.angular_velocity.y = get_data.gyro_y * 0.01 * 3.1415926 / 180;
                     imu_data_.angular_velocity.z = get_data.gyro_z * 0.01 * 3.1415926 / 180;
                     // 欧拉角
-                    double roll  = get_data.roll * 0.01 * 3.1415926 / 180;
-                    double pitch = get_data.pitch * 0.01 * 3.1415926 / 180;
-                    double yaw   = get_data.yaw * 0.01 * 3.1415926 / 180;
+                    imu_data_.eular.roll  = get_data.roll * 0.01 * 3.1415926 / 180;
+                    imu_data_.eular.pitch = get_data.pitch * 0.01 * 3.1415926 / 180;
+                    imu_data_.eular.yaw   = get_data.yaw * 0.01 * 3.1415926 / 180;
 
                     // RCLCPP_INFO(rclcpp::get_logger(), "roll = %lf  pitch = %lf yaw = %lf", roll, pitch, yaw);
-                    Euler2Quaternion(roll, pitch, yaw, imu_data_.orientation);
+                    Euler2Quaternion(imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw, imu_data_.orientation);
                 }
             }
         }

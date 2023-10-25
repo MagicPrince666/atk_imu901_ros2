@@ -18,6 +18,13 @@ typedef struct {
     double w = 0.0;
 } Quaternion;
 
+typedef struct
+{
+    float roll;  /* 横滚角，单位：rad */
+    float pitch; /* 俯仰角，单位：rad */
+    float yaw;   /* 航向角，单位：rad */
+} Eular;
+
 typedef struct {
     double x = 0.0;
     double y = 0.0;
@@ -25,9 +32,10 @@ typedef struct {
 } Vector3;
 
 typedef struct {
-    Quaternion orientation;                     // 姿态
-    Vector3 angular_velocity;                   // 角速度
-    Vector3 linear_acceleration;                // 线加速度
+    Quaternion orientation;      // 姿态
+    Vector3 angular_velocity;    // 角速度
+    Vector3 linear_acceleration; // 线加速度
+    Eular eular;                 // 欧拉角
 } Imu;
 
 class ImuInterface
