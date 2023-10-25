@@ -262,6 +262,8 @@ private:
 
     void ImuReader();
 
+    std::string Bytes2String(uint8_t *data, uint32_t len);
+
     /**
      * @brief 欧拉角转四元数
      * @param roll

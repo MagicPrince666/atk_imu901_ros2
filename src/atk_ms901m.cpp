@@ -61,6 +61,17 @@ bool AtkMs901m::Init()
     return true;
 }
 
+std::string AtkMs901m::Bytes2String(uint8_t *data, uint32_t len)
+{
+    char temp[512];
+    std::string str("");
+    for (size_t i = 0; i < len; i++) {
+        sprintf(temp, "%02x ", data[i]);
+        str.append(temp);
+    }
+    return str;
+}
+
 void AtkMs901m::ImuReader()
 {
     while (rclcpp::ok()) {
@@ -101,11 +112,12 @@ void AtkMs901m::ImuReader()
                     sum += imu_frame.dat[i];
                 }
                 if (sum == imu_frame.check_sum) {
-                    // RCLCPP_INFO(rclcpp::get_logger("AtkMs901m"), "len = %d", imu_frame.len);
-                    atk_ms901m_buffer_.size -= imu_frame.len + 5;
+                    uint32_t buf_len = imu_frame.len + 5;
+                    // RCLCPP_INFO(rclcpp::get_logger("AtkMs901m"), "buffer = %s", Bytes2String(ros_rx_buffer_ptr, buf_len).c_str());
+                    atk_ms901m_buffer_.size -= buf_len;
                     std::unique_ptr<uint8_t[]> buffer(new uint8_t[atk_ms901m_buffer_.size]);
                     // 剩余未处理数据拷贝到临时变量
-                    memcpy(buffer.get(), ros_rx_buffer_ptr + imu_frame.len + 5, atk_ms901m_buffer_.size);
+                    memcpy(buffer.get(), ros_rx_buffer_ptr + buf_len, atk_ms901m_buffer_.size);
                     // 覆盖掉原来的buff
                     memcpy(atk_ms901m_buffer_.rx_buffer, buffer.get(), atk_ms901m_buffer_.size);
                 } else {
