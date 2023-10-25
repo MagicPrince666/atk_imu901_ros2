@@ -50,6 +50,14 @@ private:
      */
     void WriteCallback();
 
+    /**
+     * @brief 转字节
+     * @param data 
+     * @param len 
+     * @return std::string 
+     */
+    std::string Bytes2String(uint8_t *data, uint32_t len);
+
 public:
     Serial(std::string dev = "/dev/ttyS2", const int baudrate = 115200, bool debug = false);
     ~Serial();

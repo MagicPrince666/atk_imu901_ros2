@@ -13,9 +13,9 @@ import lifecycle_msgs.msg
 
 def generate_launch_description():
 
-    imu_cfg = os.path.join(get_package_share_directory('atk_imu901'), 'params', 'imu_cfg.yaml')
+    imu_cfg = os.path.join(get_package_share_directory('ros2_imu'), 'params', 'imu_cfg.yaml')
 
     return LaunchDescription([
-        Node(namespace='/', package='atk_imu901', executable='atk_imu901_node', name='atk_imu901_node', parameters=[imu_cfg], output='screen'),
+        Node(namespace='/', package='ros2_imu', executable='ros2_imu_node', name='ros2_imu_node', parameters=[imu_cfg], output='screen'),
         Node(package='tf2_ros', executable='static_transform_publisher', arguments=['0', '0', '0.02','0', '0', '0', '1','base_link','imu_link']),
     ])

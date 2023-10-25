@@ -25,6 +25,7 @@
 #include "serial.h"
 #include <memory>
 #include <mutex>
+#include <thread>
 
 /* ATK-MS901M UART通讯帧数据最大长度 */
 #define ATK_MS901M_FRAME_DAT_MAX_SIZE 28
@@ -233,6 +234,9 @@ private:
     } atk_ms901m_buffer_;
 
     std::mutex data_lock_;
+    std::thread imu_thread_;
+    Imu imu_data_;
+
 private:
     /* 操作函数 */
     uint8_t GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t id_type, uint32_t timeout);
@@ -255,6 +259,17 @@ private:
      * @return int32_t 包头所在偏移
      */
     atk_ms901m_frame_t *SearchHearLE(uint8_t *data, uint32_t len, int &index);
+
+    void ImuReader();
+
+    /**
+     * @brief 欧拉角转四元数
+     * @param roll
+     * @param pitch
+     * @param yaw
+     * @param q
+     */
+    void Euler2Quaternion(double roll, double pitch, double yaw, Quaternion &q);
 };
 
 #endif

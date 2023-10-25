@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(atk_imu901)
+project(ros2_imu)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)

@@ -1,4 +1,4 @@
-#include "atk_imu901/ring_buffer.h"
+#include "ros2_imu/ring_buffer.h"
 #include <string.h>
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))

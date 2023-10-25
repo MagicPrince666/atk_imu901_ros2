@@ -3,9 +3,9 @@
 #include <thread>
 #include <unistd.h>
 
-#include "atk_imu901/imu_pub.h"
-#include "atk_imu901/atk_ms901m.h"
-#include "atk_imu901/zyf176ex.h"
+#include "ros2_imu/imu_pub.h"
+#include "ros2_imu/atk_ms901m.h"
+#include "ros2_imu/zyf176ex.h"
 #include "rclcpp/rclcpp.hpp"
 
 ImuPub::ImuPub() : rclcpp::Node("imu901m")

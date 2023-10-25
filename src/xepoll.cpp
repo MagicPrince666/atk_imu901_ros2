@@ -8,7 +8,7 @@
 #include <new>
 #include <string>
 
-#include "atk_imu901/xepoll.h"
+#include "ros2_imu/xepoll.h"
 #include "rclcpp/rclcpp.hpp"
 
 Epoll::Epoll(void)

@@ -10,8 +10,8 @@
 #include <unistd.h>
 
 #include "rclcpp/rclcpp.hpp"
-#include "atk_imu901/serial.h"
-#include "atk_imu901/xepoll.h"
+#include "ros2_imu/serial.h"
+#include "ros2_imu/xepoll.h"
 
 Serial::Serial(std::string dev, const int baudrate, bool debug)
     : Communication(dev, baudrate, debug),
@@ -158,12 +158,26 @@ void Serial::CloseSerial()
     uart_fd_ = -1;
 }
 
+std::string Serial::Bytes2String(uint8_t *data, uint32_t len)
+{
+    char temp[512];
+    std::string str("");
+    for (size_t i = 0; i < len; i++) {
+        sprintf(temp, "%02x ", data[i]);
+        str.append(temp);
+    }
+    return str;
+}
+
 void Serial::ReadCallback()
 {
 #if 1
     uint8_t uart_rx_buf[DATA_LEN];
     int len = read(uart_fd_, uart_rx_buf, sizeof(uart_rx_buf));
     if (len > 0) {
+        if (debug_) { // 调试用
+            std::cout << Bytes2String(uart_rx_buf, len) << std::endl;
+        }
         rx_ring_buffer_.RingBufferIn(uart_rx_buf, len);
     }
 #else

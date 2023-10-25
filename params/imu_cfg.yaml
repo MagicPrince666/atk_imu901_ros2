@@ -1,4 +1,4 @@
-/atk_imu901_node:
+/ros2_imu_node:
   ros__parameters:
     # IMU端口
     imu_port: "/dev/ttyS8"
