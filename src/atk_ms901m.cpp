@@ -100,6 +100,8 @@ void AtkMs901m::ImuReader()
                         // 覆盖掉原来的buff
                         memcpy(atk_ms901m_buffer_.rx_buffer, buffer.get(), atk_ms901m_buffer_.size);
                     } else {
+                        RCLCPP_WARN(rclcpp::get_logger("AtkMs901m"), "Check sum fail");
+                        usleep(10000);
                         continue;
                     }
                 }
