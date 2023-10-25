@@ -3,13 +3,18 @@
 #include <thread>
 #include <unistd.h>
 
-#include "ros2_imu/imu_pub.h"
-#include "ros2_imu/atk_ms901m.h"
-#include "ros2_imu/zyf176ex.h"
 #include "rclcpp/rclcpp.hpp"
+#include "ros2_imu/atk_ms901m.h"
+#include "ros2_imu/imu_pub.h"
+#include "ros2_imu/zyf176ex.h"
 
 ImuPub::ImuPub() : rclcpp::Node("imu901m")
 {
+    std::string imu_module;
+    this->declare_parameter("imu_module", "");
+    this->get_parameter("imu_module", imu_module);
+    RCLCPP_INFO(this->get_logger(), "imu_module = %s", imu_module.c_str());
+
     std::string port;
     this->declare_parameter("imu_port", "/dev/ttyS6");
     this->get_parameter("imu_port", port);
@@ -20,6 +25,11 @@ ImuPub::ImuPub() : rclcpp::Node("imu901m")
     this->get_parameter("baudrate", baudrate);
     RCLCPP_INFO(this->get_logger(), "baudrate = %d", baudrate);
 
+    int data_len;
+    this->declare_parameter("data_len", 0);
+    this->get_parameter("data_len", data_len);
+    RCLCPP_INFO(this->get_logger(), "data_len = %d", data_len);
+
     std::string topic;
     this->declare_parameter("topic", "imu");
     this->get_parameter("topic", topic);
@@ -29,12 +39,21 @@ ImuPub::ImuPub() : rclcpp::Node("imu901m")
     this->get_parameter("imu_frame_id", frame_id_);
     RCLCPP_INFO(this->get_logger(), "frame_id = %s", frame_id_.c_str());
 
-    atk_ms901_ = std::make_shared<AtkMs901m>(port, baudrate);
-    atk_ms901_->Init();
+    if (imu_module == "atk") {
+        imu_data_ptr_ = std::make_shared<AtkMs901m>(port, baudrate);
+    } else if (imu_module == "zyz") {
+        imu_data_ptr_ = std::make_shared<Zyf176ex>(port, baudrate);
+    } else {
+        RCLCPP_ERROR(this->get_logger(), "%s imu is not support yet", imu_module.c_str());
+    }
+    if (imu_data_ptr_) {
+        RCLCPP_INFO(this->get_logger(), "%s imu start", imu_module.c_str());
+        imu_data_ptr_->Init();
 
-    imu_pub_   = this->create_publisher<sensor_msgs::msg::Imu>(topic, 10);
-    imu_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(10), std::bind(&ImuPub::ImuPubCallback, this));
+        imu_pub_   = this->create_publisher<sensor_msgs::msg::Imu>(topic, 10);
+        imu_timer_ = this->create_wall_timer(
+            std::chrono::milliseconds(10), std::bind(&ImuPub::ImuPubCallback, this));
+    }
 }
 
 ImuPub::~ImuPub()
@@ -46,8 +65,8 @@ void ImuPub::ImuPubCallback()
     // 定义IMU数据
     sensor_msgs::msg::Imu imu_msg;
 
-    if (atk_ms901_) {
-        Imu get_imu = atk_ms901_->GetImuData();
+    if (imu_data_ptr_) {
+        Imu get_imu = imu_data_ptr_->GetImuData();
 
         imu_msg.orientation.w         = get_imu.orientation.w;
         imu_msg.orientation.x         = get_imu.orientation.x;

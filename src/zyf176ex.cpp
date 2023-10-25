@@ -60,13 +60,13 @@ void Zyf176ex::ImuReader()
                     imu_data_.linear_acceleration.y = get_data.acc_y * 9.8 / 10920;
                     imu_data_.linear_acceleration.z = get_data.acc_z * 9.8 / 10920;
                     // 角速度
-                    imu_data_.angular_velocity.x = get_data.gyro_x * 0.01 * 3.1415926 / 180;
-                    imu_data_.angular_velocity.y = get_data.gyro_y * 0.01 * 3.1415926 / 180;
-                    imu_data_.angular_velocity.z = get_data.gyro_z * 0.01 * 3.1415926 / 180;
+                    imu_data_.angular_velocity.x = get_data.gyro_x * 0.01 * M_PI / 180;
+                    imu_data_.angular_velocity.y = get_data.gyro_y * 0.01 * M_PI / 180;
+                    imu_data_.angular_velocity.z = get_data.gyro_z * 0.01 * M_PI / 180;
                     // 欧拉角
-                    imu_data_.eular.roll  = get_data.roll * 0.01 * 3.1415926 / 180;
-                    imu_data_.eular.pitch = get_data.pitch * 0.01 * 3.1415926 / 180;
-                    imu_data_.eular.yaw   = get_data.yaw * 0.01 * 3.1415926 / 180;
+                    imu_data_.eular.roll  = get_data.roll * 0.01 * M_PI / 180;
+                    imu_data_.eular.pitch = get_data.pitch * 0.01 * M_PI / 180;
+                    imu_data_.eular.yaw   = get_data.yaw * 0.01 * M_PI / 180;
 
                     // RCLCPP_INFO(rclcpp::get_logger(), "roll = %lf  pitch = %lf yaw = %lf", roll, pitch, yaw);
                     Euler2Quaternion(imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw, imu_data_.orientation);

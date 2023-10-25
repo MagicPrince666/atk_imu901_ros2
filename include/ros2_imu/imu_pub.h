@@ -36,7 +36,7 @@ private:
 
     rclcpp::TimerBase::SharedPtr imu_timer_;
 
-    std::shared_ptr<ImuInterface> atk_ms901_;
+    std::shared_ptr<ImuInterface> imu_data_ptr_;
     std::string frame_id_;
 };
 
