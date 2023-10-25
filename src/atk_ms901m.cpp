@@ -78,41 +78,40 @@ void AtkMs901m::ImuReader()
             } else {
                 atk_ms901m_frame_t imu_frame;
                 // 重置指针位置指向包头位置和更新长度
-                if (index) {
-                    int32_t lenght = atk_ms901m_buffer_.size - index;
-                    if (lenght >= (res_tmp->len + 5)) {
-                        ros_rx_buffer_ptr += index;
-                        atk_ms901m_buffer_.size = lenght;
 
-                        imu_frame.head_l = res_tmp->head_l;
-                        imu_frame.head_h = res_tmp->head_h;
-                        imu_frame.id     = res_tmp->id;
-                        imu_frame.len    = res_tmp->len;
-                        memcpy(imu_frame.dat, res_tmp->dat, res_tmp->len);
-                        imu_frame.check_sum = res_tmp->dat[res_tmp->len];
+                int32_t lenght = atk_ms901m_buffer_.size - index;
+                if (lenght >= (res_tmp->len + 5)) {
+                    ros_rx_buffer_ptr += index;
+                    atk_ms901m_buffer_.size = lenght;
+                } else {
+                    RCLCPP_WARN(rclcpp::get_logger("AtkMs901m"), "not a full buffer size = %d", atk_ms901m_buffer_.size);
+                    usleep(10000);
+                    continue;
+                }
 
-                        uint8_t sum = imu_frame.head_l + imu_frame.head_h + imu_frame.id + imu_frame.len;
-                        for (uint32_t i = 0; i < imu_frame.len; i++) {
-                            sum += imu_frame.dat[i];
-                        }
-                        if (sum == imu_frame.check_sum) {
-                            RCLCPP_INFO(rclcpp::get_logger("AtkMs901m"), "len = %d", imu_frame.len);
-                            atk_ms901m_buffer_.size -= imu_frame.len + 5;
-                            std::unique_ptr<uint8_t[]> buffer(new uint8_t[atk_ms901m_buffer_.size]);
-                            // 剩余未处理数据拷贝到临时变量
-                            memcpy(buffer.get(), ros_rx_buffer_ptr + imu_frame.len + 5, atk_ms901m_buffer_.size);
-                            // 覆盖掉原来的buff
-                            memcpy(atk_ms901m_buffer_.rx_buffer, buffer.get(), atk_ms901m_buffer_.size);
-                        } else {
-                            RCLCPP_WARN(rclcpp::get_logger("AtkMs901m"), "Check sum fail");
-                            usleep(10000);
-                            continue;
-                        }
-                    } else {
-                        RCLCPP_WARN(rclcpp::get_logger("AtkMs901m"), "not a full buffer size = %d", atk_ms901m_buffer_.size);
-                        usleep(10000);
-                        continue;
-                    }
+                imu_frame.head_l = res_tmp->head_l;
+                imu_frame.head_h = res_tmp->head_h;
+                imu_frame.id     = res_tmp->id;
+                imu_frame.len    = res_tmp->len;
+                memcpy(imu_frame.dat, res_tmp->dat, res_tmp->len);
+                imu_frame.check_sum = res_tmp->dat[res_tmp->len];
+
+                uint8_t sum = imu_frame.head_l + imu_frame.head_h + imu_frame.id + imu_frame.len;
+                for (uint32_t i = 0; i < imu_frame.len; i++) {
+                    sum += imu_frame.dat[i];
+                }
+                if (sum == imu_frame.check_sum) {
+                    // RCLCPP_INFO(rclcpp::get_logger("AtkMs901m"), "len = %d", imu_frame.len);
+                    atk_ms901m_buffer_.size -= imu_frame.len + 5;
+                    std::unique_ptr<uint8_t[]> buffer(new uint8_t[atk_ms901m_buffer_.size]);
+                    // 剩余未处理数据拷贝到临时变量
+                    memcpy(buffer.get(), ros_rx_buffer_ptr + imu_frame.len + 5, atk_ms901m_buffer_.size);
+                    // 覆盖掉原来的buff
+                    memcpy(atk_ms901m_buffer_.rx_buffer, buffer.get(), atk_ms901m_buffer_.size);
+                } else {
+                    RCLCPP_WARN(rclcpp::get_logger("AtkMs901m"), "Check sum fail");
+                    usleep(10000);
+                    continue;
                 }
 
                 std::lock_guard<std::mutex> mylock_guard(data_lock_);
@@ -121,7 +120,7 @@ void AtkMs901m::ImuReader()
                     imu_data_.eular.roll  = *(int16_t *)(imu_frame.dat) / 32768.0 * M_PI;
                     imu_data_.eular.pitch = *(int16_t *)(imu_frame.dat + 2) / 32768.0 * M_PI;
                     imu_data_.eular.yaw   = *(int16_t *)(imu_frame.dat + 4) / 32768.0 * M_PI;
-                    RCLCPP_INFO(rclcpp::get_logger("AtkMs901m"), "roll = %lf  pitch = %lf yaw = %lf", imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw);
+                    // RCLCPP_INFO(rclcpp::get_logger("AtkMs901m"), "roll = %lf  pitch = %lf yaw = %lf", imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw);
                 } break;
 
                 case ATK_MS901M_FRAME_ID_QUAT /* 四元数 */: {
@@ -132,12 +131,12 @@ void AtkMs901m::ImuReader()
                 } break;
 
                 case ATK_MS901M_FRAME_ID_GYRO_ACCE /* 陀螺仪，加速度计 */: {
-                    imu_data_.linear_acceleration.x = *(int16_t *)(imu_frame.dat) / 32768.0 * 16 * 9.8;
-                    imu_data_.linear_acceleration.y = *(int16_t *)(imu_frame.dat + 2) / 32768.0 * 16 * 9.8;
-                    imu_data_.linear_acceleration.z = *(int16_t *)(imu_frame.dat + 4) / 32768.0 * 16 * 9.8;
-                    imu_data_.angular_velocity.x    = *(int16_t *)(imu_frame.dat + 6) / 32768.0 * 2000 / 180.0 * M_PI;
-                    imu_data_.angular_velocity.y    = *(int16_t *)(imu_frame.dat + 8) / 32768.0 * 2000 / 180.0 * M_PI;
-                    imu_data_.angular_velocity.z    = *(int16_t *)(imu_frame.dat + 10) / 32768.0 * 2000 / 180.0 * M_PI;
+                    imu_data_.linear_acceleration.x = *(int16_t *)(imu_frame.dat) / 32768.0 * 4 * 9.8;
+                    imu_data_.linear_acceleration.y = *(int16_t *)(imu_frame.dat + 2) / 32768.0 * 4 * 9.8;
+                    imu_data_.linear_acceleration.z = *(int16_t *)(imu_frame.dat + 4) / 32768.0 * 4 * 9.8;
+                    imu_data_.angular_velocity.x    = *(int16_t *)(imu_frame.dat + 6) / 32768.0 * 2000 * M_PI / 180.0;
+                    imu_data_.angular_velocity.y    = *(int16_t *)(imu_frame.dat + 8) / 32768.0 * 2000 * M_PI / 180.0;
+                    imu_data_.angular_velocity.z    = *(int16_t *)(imu_frame.dat + 10) / 32768.0 * 2000 * M_PI / 180.0;
                 } break;
 
                 default:
@@ -199,7 +198,7 @@ atk_ms901m_frame_t *AtkMs901m::SearchHearLE(uint8_t *data, uint32_t total_len, i
     atk_ms901m_frame_t *res_tmp = nullptr;
     for (uint32_t i = 0; i < total_len; i++) {
         // 剩余长度大于一个包长度，说明还有协议数据包可以处理
-        if ((total_len - i) >= sizeof(atk_ms901m_frame_t)) {
+        if ((total_len - i) >= 6) {
             // 一个字节一个字节的偏移，直到查找到协议头
             res_tmp = (atk_ms901m_frame_t *)(data + i);
             // 找到协议头
