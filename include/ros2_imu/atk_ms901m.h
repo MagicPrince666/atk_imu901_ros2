@@ -230,8 +230,8 @@ private:
 
     struct
     {
-        uint8_t rx_buffer[256];
-        uint32_t size; // buf长度
+        uint8_t rx_buffer[255];
+        uint8_t size; // buf长度
     } atk_ms901m_buffer_;
 
     std::mutex data_lock_;
@@ -262,7 +262,7 @@ private:
      * @param index 地址偏移
      * @return int32_t 包头所在偏移
      */
-    atk_ms901m_frame_t *SearchHearLE(uint8_t *data, uint32_t len, int &index);
+    atk_ms901m_frame_t *SearchHearLE(uint8_t *data, uint32_t len, uint32_t &index);
 
     void ImuReader();
 
