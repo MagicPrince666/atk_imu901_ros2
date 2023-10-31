@@ -1,6 +1,7 @@
 #include "ros2_imu/zyf176ex.h"
 #include "rclcpp/rclcpp.hpp"
 #include <unistd.h>
+#include <cmath>
 
 Zyf176ex::Zyf176ex(std::string port, uint32_t rate)
     : ImuInterface(port, rate) {}
@@ -24,53 +25,68 @@ bool Zyf176ex::Init()
     return true;
 }
 
+void Zyf176ex::ReadBuffer(const uint8_t *buffer, const int length)
+{
+    std::unique_lock<std::mutex> lck(g_mtx_);
+    int buf_size = sizeof(zyz_176ex_buffer_.rx_buffer) - zyz_176ex_buffer_.size;
+    if (buf_size >= length) {
+        memcpy(zyz_176ex_buffer_.rx_buffer + zyz_176ex_buffer_.size, buffer, length);
+        zyz_176ex_buffer_.size += length; // 更新buff长度
+    } else {
+        memcpy(zyz_176ex_buffer_.rx_buffer + zyz_176ex_buffer_.size, buffer, buf_size);
+        zyz_176ex_buffer_.size += buf_size; // 更新buff长度
+    }
+    g_cv_.notify_all(); // 唤醒所有线程.
+
+    return;
+}
+
 void Zyf176ex::ImuReader()
 {
+    serial_comm_->AddCallback(std::bind(&Zyf176ex::ReadBuffer, this, std::placeholders::_1, std::placeholders::_2));
     while (rclcpp::ok()) {
-        int len = serial_comm_->ReadBuffer(zyz_176ex_buffer_.rx_buffer + zyz_176ex_buffer_.size, sizeof(zyz_176ex_buffer_.rx_buffer) - zyz_176ex_buffer_.size);
-        if (len > 0) {
-            zyz_176ex_buffer_.size += len; // 更新buff长度
-            if (zyz_176ex_buffer_.size < sizeof(zyz_data_t)) {
-                RCLCPP_WARN(rclcpp::get_logger("Zyf176ex"), "buffer size = %d not a full protocol", zyz_176ex_buffer_.size);
-                usleep(10000);
-                continue;
-            }
-            for (uint32_t i = 0; i < zyz_176ex_buffer_.size / sizeof(zyz_data_t); i++) {
-                uint8_t *ros_rx_buffer_ptr = zyz_176ex_buffer_.rx_buffer;
-                int index                  = 0;
-                zyz_data_t *res_tmp        = SearchHearLE(ros_rx_buffer_ptr, zyz_176ex_buffer_.size, index);
-                if (res_tmp != nullptr) {
-                    // 有数据包需要处理
-                    if (index) {
-                        ros_rx_buffer_ptr += index;
-                        zyz_176ex_buffer_.size -= index;
-                    }
-
-                    zyz_data_t get_data = *res_tmp;
-                    zyz_176ex_buffer_.size -= sizeof(zyz_data_t);
-                    std::unique_ptr<uint8_t[]> buffer(new uint8_t[zyz_176ex_buffer_.size]);
-                    // 剩余未处理数据拷贝到临时变量
-                    memcpy(buffer.get(), ros_rx_buffer_ptr + sizeof(zyz_data_t), zyz_176ex_buffer_.size);
-                    // 覆盖掉原来的buff
-                    memcpy(zyz_176ex_buffer_.rx_buffer, buffer.get(), zyz_176ex_buffer_.size);
-
-                    std::lock_guard<std::mutex> mylock_guard(data_lock_);
-                    // 加速度
-                    imu_data_.linear_acceleration.x = get_data.acc_x * 9.8 / 10920;
-                    imu_data_.linear_acceleration.y = get_data.acc_y * 9.8 / 10920;
-                    imu_data_.linear_acceleration.z = get_data.acc_z * 9.8 / 10920;
-                    // 角速度
-                    imu_data_.angular_velocity.x = get_data.gyro_x * 0.01 * M_PI / 180;
-                    imu_data_.angular_velocity.y = get_data.gyro_y * 0.01 * M_PI / 180;
-                    imu_data_.angular_velocity.z = get_data.gyro_z * 0.01 * M_PI / 180;
-                    // 欧拉角
-                    imu_data_.eular.roll  = get_data.roll * 0.01 * M_PI / 180;
-                    imu_data_.eular.pitch = get_data.pitch * 0.01 * M_PI / 180;
-                    imu_data_.eular.yaw   = get_data.yaw * 0.01 * M_PI / 180;
-
-                    // RCLCPP_INFO(rclcpp::get_logger(), "roll = %lf  pitch = %lf yaw = %lf", roll, pitch, yaw);
-                    Euler2Quaternion(imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw, imu_data_.orientation);
+        std::unique_lock<std::mutex> lck(g_mtx_);
+        g_cv_.wait(lck);
+        if (zyz_176ex_buffer_.size < sizeof(zyz_data_t)) {
+            RCLCPP_WARN(rclcpp::get_logger("Zyf176ex"), "buffer size = %d not a full protocol", zyz_176ex_buffer_.size);
+            usleep(10000);
+            continue;
+        }
+        for (uint32_t i = 0; i < zyz_176ex_buffer_.size / sizeof(zyz_data_t); i++) {
+            uint8_t *ros_rx_buffer_ptr = zyz_176ex_buffer_.rx_buffer;
+            int index                  = 0;
+            zyz_data_t *res_tmp        = SearchHearLE(ros_rx_buffer_ptr, zyz_176ex_buffer_.size, index);
+            if (res_tmp != nullptr) {
+                // 有数据包需要处理
+                if (index) {
+                    ros_rx_buffer_ptr += index;
+                    zyz_176ex_buffer_.size -= index;
                 }
+
+                zyz_data_t get_data = *res_tmp;
+                zyz_176ex_buffer_.size -= sizeof(zyz_data_t);
+                std::unique_ptr<uint8_t[]> buffer(new uint8_t[zyz_176ex_buffer_.size]);
+                // 剩余未处理数据拷贝到临时变量
+                memcpy(buffer.get(), ros_rx_buffer_ptr + sizeof(zyz_data_t), zyz_176ex_buffer_.size);
+                // 覆盖掉原来的buff
+                memcpy(zyz_176ex_buffer_.rx_buffer, buffer.get(), zyz_176ex_buffer_.size);
+
+                std::lock_guard<std::mutex> mylock_guard(data_lock_);
+                // 加速度
+                imu_data_.linear_acceleration.x = get_data.acc_x * 9.8 / 10920;
+                imu_data_.linear_acceleration.y = get_data.acc_y * 9.8 / 10920;
+                imu_data_.linear_acceleration.z = get_data.acc_z * 9.8 / 10920;
+                // 角速度
+                imu_data_.angular_velocity.x = get_data.gyro_x * 0.01 * M_PI / 180;
+                imu_data_.angular_velocity.y = get_data.gyro_y * 0.01 * M_PI / 180;
+                imu_data_.angular_velocity.z = get_data.gyro_z * 0.01 * M_PI / 180;
+                // 欧拉角
+                imu_data_.eular.roll  = get_data.roll * 0.01 * M_PI / 180;
+                imu_data_.eular.pitch = get_data.pitch * 0.01 * M_PI / 180;
+                imu_data_.eular.yaw   = get_data.yaw * 0.01 * M_PI / 180;
+
+                // RCLCPP_INFO(rclcpp::get_logger(), "roll = %lf  pitch = %lf yaw = %lf", roll, pitch, yaw);
+                Euler2Quaternion(imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw, imu_data_.orientation);
             }
         }
         usleep(10000);

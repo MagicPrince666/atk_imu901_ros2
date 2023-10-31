@@ -14,6 +14,7 @@
 #include <memory>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 
 typedef struct
 {
@@ -46,6 +47,8 @@ private:
     std::shared_ptr<Communication> serial_comm_; // 通讯端口
     std::mutex data_lock_;
     Imu imu_data_;
+    std::condition_variable g_cv_; // 全局条件变量
+    std::mutex g_mtx_;             // 全局互斥锁.
 
     struct
     {
@@ -54,6 +57,8 @@ private:
     } zyz_176ex_buffer_;
 
     void ImuReader();
+
+    void ReadBuffer(const uint8_t *buffer, const int length);
 
     zyz_data_t *SearchHearLE(uint8_t *data, uint32_t total_len, int &index);
 

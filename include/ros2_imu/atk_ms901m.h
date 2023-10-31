@@ -26,6 +26,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <condition_variable>
 
 /* ATK-MS901M UART通讯帧数据最大长度 */
 #define ATK_MS901M_FRAME_DAT_MAX_SIZE 28
@@ -237,6 +238,9 @@ private:
     std::thread imu_thread_;
     Imu imu_data_;
 
+    std::condition_variable g_cv_; // 全局条件变量
+    std::mutex g_mtx_;             // 全局互斥锁.
+
 private:
     /* 操作函数 */
     uint8_t GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t id_type, uint32_t timeout);
@@ -261,6 +265,8 @@ private:
     atk_ms901m_frame_t *SearchHearLE(uint8_t *data, uint32_t len, int &index);
 
     void ImuReader();
+
+    void ReadBuffer(const uint8_t *buffer, const int length);
 
     std::string Bytes2String(uint8_t *data, uint32_t len);
 

@@ -3,7 +3,7 @@
     # mode zyz/atk
     imu_module: "zyz"
     # IMU端口
-    imu_port: "/dev/ttyUSB0"
+    imu_port: "/dev/imu_port"
     # 波特率
     baudrate: 115200
     # 1帧数据长度

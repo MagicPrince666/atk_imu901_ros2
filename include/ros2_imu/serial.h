@@ -11,6 +11,7 @@
 #define __SERIAL_H__
 
 #include <iostream>
+#include <functional>
 #include <stdint.h>
 #include <termios.h>
 
@@ -27,6 +28,8 @@ private:
 
     RingBuffer tx_ring_buffer_; // 发送缓存队列
     RingBuffer rx_ring_buffer_; // 接收缓存队列
+
+    std::function<void(const uint8_t *, const uint32_t)> read_function_; // 接收回调
 
     /**
      * @brief 打开串口
@@ -77,6 +80,12 @@ public:
      * @return int
      */
     int SendBuffer(const uint8_t *const buffer, const int length);
+
+    /**
+     * @brief 回调注册
+     * @param handler 
+     */
+    void AddCallback(std::function<void(const uint8_t *, const uint32_t)> handler);
 };
 
 // 生产串口uart部件的工厂

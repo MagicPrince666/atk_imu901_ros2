@@ -35,6 +35,12 @@ public:
     virtual int ReadBuffer(uint8_t *const buffer, const int length) = 0;
 
     /**
+     * @brief 回调注册
+     * @param handler 
+     */
+    virtual void AddCallback(std::function<void(const uint8_t *, const uint32_t)> handler) = 0;
+
+    /**
      * @brief 设置通讯参数
      * @param opt 参数值
      * @param filterType 类型

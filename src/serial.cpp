@@ -15,8 +15,8 @@
 
 Serial::Serial(std::string dev, const int baudrate, bool debug)
     : Communication(dev, baudrate, debug),
-      tx_ring_buffer_(128*1024), // 1M缓存
-      rx_ring_buffer_(128*1024)
+      tx_ring_buffer_(128 * 1024), // 1M缓存
+      rx_ring_buffer_(128 * 1024)
 {
     uart_fd_ = OpenSerial();
     assert(uart_fd_ > 0);
@@ -178,7 +178,11 @@ void Serial::ReadCallback()
         if (debug_) { // 调试用
             std::cout << Bytes2String(uart_rx_buf, len) << std::endl;
         }
-        rx_ring_buffer_.RingBufferIn(uart_rx_buf, len);
+        if (nullptr != read_function_) {
+            read_function_(uart_rx_buf, len);
+        } else {
+            rx_ring_buffer_.RingBufferIn(uart_rx_buf, len);
+        }
     }
 #else
     uint8_t uart_rx_buf[1024];
@@ -186,7 +190,11 @@ void Serial::ReadCallback()
     do {
         len = read(uart_fd_, uart_rx_buf, sizeof(uart_rx_buf));
         if (len > 0) {
-            rx_ring_buffer_.RingBufferIn(uart_rx_buf, len);
+            if (nullptr != read_function_) {
+                read_function_(uart_rx_buf, len);
+            } else {
+                rx_ring_buffer_.RingBufferIn(uart_rx_buf, len);
+            }
         }
     } while (len > 0);
 #endif
@@ -211,12 +219,17 @@ int Serial::ReadBuffer(uint8_t *const buffer, const int length)
 int Serial::SendBuffer(const uint8_t *const buffer, const int length)
 {
     int ret = write(uart_fd_, buffer, length);
-    if(ret < 0) {
+    if (ret < 0) {
         // ROS_ERROR("Serial write with %d", ret);
         return -1;
-    } else if(ret < length) {
+    } else if (ret < length) {
         // ROS_WARN("%d buff send, total:%d", ret, length);
     }
     return ret;
     // return tx_ring_buffer_.RingBufferIn(buffer, length);
+}
+
+void Serial::AddCallback(std::function<void(const uint8_t *, const uint32_t)> handler)
+{
+    read_function_ = handler;
 }
