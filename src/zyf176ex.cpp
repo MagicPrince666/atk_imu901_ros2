@@ -89,7 +89,6 @@ void Zyf176ex::ImuReader()
                 Euler2Quaternion(imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw, imu_data_.orientation);
             }
         }
-        usleep(10000);
     }
 }
 
