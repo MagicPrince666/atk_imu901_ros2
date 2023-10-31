@@ -21,13 +21,15 @@
 #include "ros2_imu/atk_ms901m.h"
 #include "rclcpp/rclcpp.hpp"
 
+#include <cmath>
 #include <cstring>
 #include <unistd.h>
-#include <cmath>
 
 AtkMs901m::AtkMs901m(std::string port, uint32_t rate)
     : ImuInterface(port, rate)
 {
+    atk_ms901m_fsr_.gyro          = 0x03;
+    atk_ms901m_fsr_.accelerometer = 0x01;
     /* ATK-MS601M UART初始化 */
     // 创建通讯部件工厂,这一步可以优化到从lunch配置文件选择初始化不同的通讯部件工厂
     std::shared_ptr<CommFactory> factory(new SerialComm());
@@ -57,6 +59,8 @@ bool AtkMs901m::Init()
     //     return false;
     // }
 
+    ReadRegById(ATK_MS901M_FRAME_ID_REG_GYROFSR);
+    ReadRegById(ATK_MS901M_FRAME_ID_REG_ACCFSR);
     imu_thread_ = std::thread([](AtkMs901m *p_this) { p_this->ImuReader(); }, this);
 
     return true;
@@ -140,34 +144,115 @@ void AtkMs901m::ImuReader()
                     RCLCPP_WARN(rclcpp::get_logger("AtkMs901m"), "Check sum fail");
                     continue;
                 }
+                if (imu_frame.head_h == ATK_MS901M_FRAME_HEAD_UPLOAD_H) {
+                    std::lock_guard<std::mutex> mylock_guard(data_lock_);
+                    switch (imu_frame.id) {
+                    case ATK_MS901M_FRAME_ID_ATTITUDE /* 姿态角 */: {
+                        imu_data_.eular.roll  = *(int16_t *)(imu_frame.dat) / 32768.0 * M_PI;
+                        imu_data_.eular.pitch = *(int16_t *)(imu_frame.dat + 2) / 32768.0 * M_PI;
+                        imu_data_.eular.yaw   = *(int16_t *)(imu_frame.dat + 4) / 32768.0 * M_PI;
+                        // RCLCPP_INFO(rclcpp::get_logger("AtkMs901m"), "roll = %lf  pitch = %lf yaw = %lf", imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw);
+                    } break;
 
-                std::lock_guard<std::mutex> mylock_guard(data_lock_);
-                switch (imu_frame.id) {
-                case ATK_MS901M_FRAME_ID_ATTITUDE /* 姿态角 */: {
-                    imu_data_.eular.roll  = *(int16_t *)(imu_frame.dat) / 32768.0 * M_PI;
-                    imu_data_.eular.pitch = *(int16_t *)(imu_frame.dat + 2) / 32768.0 * M_PI;
-                    imu_data_.eular.yaw   = *(int16_t *)(imu_frame.dat + 4) / 32768.0 * M_PI;
-                    // RCLCPP_INFO(rclcpp::get_logger("AtkMs901m"), "roll = %lf  pitch = %lf yaw = %lf", imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw);
-                } break;
+                    case ATK_MS901M_FRAME_ID_QUAT /* 四元数 */: {
+                        imu_data_.orientation.w = *(int16_t *)(imu_frame.dat) / 32768.0;
+                        imu_data_.orientation.x = *(int16_t *)(imu_frame.dat + 2) / 32768.0;
+                        imu_data_.orientation.y = *(int16_t *)(imu_frame.dat + 4) / 32768.0;
+                        imu_data_.orientation.z = *(int16_t *)(imu_frame.dat + 6) / 32768.0;
+                    } break;
 
-                case ATK_MS901M_FRAME_ID_QUAT /* 四元数 */: {
-                    imu_data_.orientation.w = *(int16_t *)(imu_frame.dat) / 32768.0;
-                    imu_data_.orientation.x = *(int16_t *)(imu_frame.dat + 2) / 32768.0;
-                    imu_data_.orientation.y = *(int16_t *)(imu_frame.dat + 4) / 32768.0;
-                    imu_data_.orientation.z = *(int16_t *)(imu_frame.dat + 6) / 32768.0;
-                } break;
+                    case ATK_MS901M_FRAME_ID_GYRO_ACCE /* 陀螺仪，加速度计 */: {
+                        imu_data_.linear_acceleration.x = *(int16_t *)(imu_frame.dat) / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
+                        imu_data_.linear_acceleration.y = *(int16_t *)(imu_frame.dat + 2) / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
+                        imu_data_.linear_acceleration.z = *(int16_t *)(imu_frame.dat + 4) / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
+                        imu_data_.angular_velocity.x    = *(int16_t *)(imu_frame.dat + 6) / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] * M_PI / 180.0;
+                        imu_data_.angular_velocity.y    = *(int16_t *)(imu_frame.dat + 8) / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] * M_PI / 180.0;
+                        imu_data_.angular_velocity.z    = *(int16_t *)(imu_frame.dat + 10) / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] * M_PI / 180.0;
+                    } break;
 
-                case ATK_MS901M_FRAME_ID_GYRO_ACCE /* 陀螺仪，加速度计 */: {
-                    imu_data_.linear_acceleration.x = *(int16_t *)(imu_frame.dat) / 32768.0 * 4 * 9.8;
-                    imu_data_.linear_acceleration.y = *(int16_t *)(imu_frame.dat + 2) / 32768.0 * 4 * 9.8;
-                    imu_data_.linear_acceleration.z = *(int16_t *)(imu_frame.dat + 4) / 32768.0 * 4 * 9.8;
-                    imu_data_.angular_velocity.x    = *(int16_t *)(imu_frame.dat + 6) / 32768.0 * 2000 * M_PI / 180.0;
-                    imu_data_.angular_velocity.y    = *(int16_t *)(imu_frame.dat + 8) / 32768.0 * 2000 * M_PI / 180.0;
-                    imu_data_.angular_velocity.z    = *(int16_t *)(imu_frame.dat + 10) / 32768.0 * 2000 * M_PI / 180.0;
-                } break;
+                    default:
+                        break;
+                    }
+                } else if (imu_frame.head_h == ATK_MS901M_FRAME_HEAD_ACK_H) {
+                    switch (imu_frame.id) {
+                    case ATK_MS901M_FRAME_ID_REG_SENSTA /* 读取传感器校准状态 */: {
+                    } break;
 
-                default:
-                    break;
+                    case ATK_MS901M_FRAME_ID_REG_GYROFSR /* 获取ATK-MS901M陀螺仪满量程 */: {
+                        if (imu_frame.dat[0] < 6) {
+                            atk_ms901m_fsr_.gyro = imu_frame.dat[0];
+                        } else {
+                            RCLCPP_ERROR(rclcpp::get_logger("AtkMs901m"), "get imu gyro fail %d", imu_frame.dat[0]);
+                        }
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_ACCFSR /* 获取ATK-MS901M加速度计满量程 */: {
+                        if (imu_frame.dat[0] < 4) {
+                            atk_ms901m_fsr_.accelerometer = imu_frame.dat[0];
+                        } else {
+                            RCLCPP_ERROR(rclcpp::get_logger("AtkMs901m"), "get imu accelerometer fail %d", imu_frame.dat[0]);
+                        }
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_GYROBW /* 设置陀螺仪带宽 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_ACCBW /* 设置加速度计带宽 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_BAUD /* 设置UART通讯波特率 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_RETURNSET /* 设置回传内容 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_RETURNRATE /* 设置回传速率 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_ALG /* 设置算法 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_ASM /* 设置安装方向 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_GAUCAL /* 设置陀螺仪自校准开关 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_BAUCAL /* 设置气压计自校准开关 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_LEDOFF /* 设置LED开关 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_D0MODE /* 设置端口D0模式 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_D1MODE /* 设置端口D1模式 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_D2MODE /* 设置端口D2模式 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_D3MODE /* 设置端口D3模式 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_D1PULSE /* 设置端口D1 PWM高电平脉宽 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_D3PULSE /* 设置端口D3 PWM高电平脉宽 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_D1PERIOD /* 设置端口D1 PWM周期 */: {
+                    } break;
+
+                    case ATK_MS901M_FRAME_ID_REG_D3PERIOD /* 设置端口D3 PWM周期 */: {
+                    } break;
+
+                    default:
+                        break;
+                    }
+                } else {
+                    RCLCPP_WARN(rclcpp::get_logger("AtkMs901m"), "unknow head = %02x%02x", imu_frame.head_l, imu_frame.head_h);
                 }
             }
         }
@@ -270,7 +355,7 @@ uint8_t AtkMs901m::GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t i
     uint8_t *ros_rx_buffer_ptr = atk_ms901m_buffer_.rx_buffer;
 
     while (rclcpp::ok()) {
-        uint32_t index                   = 0;
+        uint32_t index              = 0;
         atk_ms901m_frame_t *res_tmp = SearchHearLE(ros_rx_buffer_ptr, atk_ms901m_buffer_.size, index);
         if (res_tmp == nullptr) {
             // 已经处理完所有可识别的包
@@ -316,6 +401,17 @@ uint8_t AtkMs901m::GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t i
     return ATK_MS901M_EOK;
 }
 
+void AtkMs901m::ReadRegById(uint8_t id)
+{
+    uint8_t buf[7];
+    buf[0] = ATK_MS901M_FRAME_HEAD_L;
+    buf[1] = ATK_MS901M_FRAME_HEAD_ACK_H;
+    buf[2] = ATK_MS901M_READ_REG_ID(id);
+    buf[3] = 1;
+    buf[4] = 0;
+    buf[5] = buf[0] + buf[1] + buf[2] + buf[3] + buf[4];
+    serial_comm_->SendBuffer(buf, 6);
+}
 /**
  * @brief       通过帧ID读取ATK-MS901M寄存器
  * @param       id     : 寄存器对应的通讯帧ID

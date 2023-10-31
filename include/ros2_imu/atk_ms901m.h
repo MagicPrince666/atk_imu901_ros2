@@ -23,10 +23,10 @@
 
 #include "imu_interface.h"
 #include "serial.h"
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <thread>
-#include <condition_variable>
 
 /* ATK-MS901M UART通讯帧数据最大长度 */
 #define ATK_MS901M_FRAME_DAT_MAX_SIZE 28
@@ -245,6 +245,7 @@ private:
     /* 操作函数 */
     uint8_t GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t id_type, uint32_t timeout);
     uint8_t ReadRegById(uint8_t id, uint8_t *dat, uint32_t timeout);                             /* 通过帧ID读取ATK-MS901M寄存器 */
+    void ReadRegById(uint8_t id);                                                                /* 通过帧ID读取ATK-MS901M寄存器,异步方式 */
     uint8_t WriteRegById(uint8_t id, uint8_t len, uint8_t *dat);                                 /* 通过帧ID写入ATK-MS901M寄存器 */
     uint8_t GetPort(atk_ms901m_port_data_t *port_dat, uint32_t timeout);                         /* 获取ATK-MS901M端口数据 */
     uint8_t GetLedState(atk_ms901m_led_state_t *state, uint32_t timeout);                        /* 获取ATK-MS901M LED灯状态 */
