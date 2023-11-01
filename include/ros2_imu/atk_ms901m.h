@@ -171,9 +171,6 @@ public:
     bool Init(); /* ATK-MS901M初始化 */
     Imu GetImuData();
 
-    uint8_t GetAttitude(atk_ms901m_attitude_data_t *attitude_dat, uint32_t timeout);                                                      /* 获取ATK-MS901M姿态角数据 */
-    uint8_t GetQuaternion(atk_ms901m_quaternion_data_t *quaternion_dat, uint32_t timeout);                                                /* 获取ATK-MS901M四元数数据 */
-    uint8_t GetGyroAccelerometer(atk_ms901m_gyro_data_t *gyro_dat, atk_ms901m_accelerometer_data_t *accelerometer_dat, uint32_t timeout); /* 获取ATK-MS901M陀螺仪、加速度计数据 */
     uint8_t GetMagnetometer(atk_ms901m_magnetometer_data_t *magnetometer_dat, uint32_t timeout);                                          /* 获取ATK-MS901M磁力计数据 */
     uint8_t GetBarometer(atk_ms901m_barometer_data_t *barometer_dat, uint32_t timeout);                                                   /* 获取ATK-MS901M气压计数据 */
 
@@ -270,15 +267,6 @@ private:
     void ReadBuffer(const uint8_t *buffer, const int length);
 
     std::string Bytes2String(uint8_t *data, uint32_t len);
-
-    /**
-     * @brief 欧拉角转四元数
-     * @param roll
-     * @param pitch
-     * @param yaw
-     * @param q
-     */
-    void Euler2Quaternion(double roll, double pitch, double yaw, Quaternion &q);
 };
 
 #endif
