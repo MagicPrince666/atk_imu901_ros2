@@ -25,9 +25,9 @@ typedef struct
     int16_t gyro_x; /* x轴角速度原始数据 */
     int16_t gyro_y; /* y轴角速度原始数据 */
     int16_t gyro_z; /* z轴角速度原始数据 */
-    int16_t roll;   /* 欧拉角roll原始数据 */
-    int16_t pitch;  /* 欧拉角pitch原始数据 */
-    int16_t yaw;    /* 欧拉角yaw原始数据 */
+    int16_t yaw;    /* 航向角yaw原始数据 */
+    int16_t pitch;  /* 俯仰角pitch原始数据 */
+    int16_t roll;   /* 横滚角roll原始数据 */
     uint16_t timer;  /* 时间戳原始数据 */
     uint16_t crc;    /* CRC校验和 */
 } zyz_data_t;
