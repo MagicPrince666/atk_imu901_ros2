@@ -98,7 +98,7 @@ void AtkMs901m::ImuReader()
     serial_comm_->AddCallback(std::bind(&AtkMs901m::ReadBuffer, this, std::placeholders::_1, std::placeholders::_2));
     while (rclcpp::ok()) {
         std::unique_lock<std::mutex> lck(g_mtx_);
-        g_cv_.wait(lck);
+        g_cv_.wait_for(lck, std::chrono::milliseconds(100));
         for (uint32_t i = 0; atk_ms901m_buffer_.size >= 6; i++) {
             uint8_t *ros_rx_buffer_ptr  = atk_ms901m_buffer_.rx_buffer;
             uint32_t index              = 0;

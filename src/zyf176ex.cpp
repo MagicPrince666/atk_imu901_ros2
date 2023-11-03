@@ -46,7 +46,7 @@ void Zyf176ex::ImuReader()
     serial_comm_->AddCallback(std::bind(&Zyf176ex::ReadBuffer, this, std::placeholders::_1, std::placeholders::_2));
     while (rclcpp::ok()) {
         std::unique_lock<std::mutex> lck(g_mtx_);
-        g_cv_.wait(lck);
+        g_cv_.wait_for(lck, std::chrono::milliseconds(100));
         if (zyz_176ex_buffer_.size < sizeof(zyz_data_t)) {
             RCLCPP_WARN(rclcpp::get_logger("Zyf176ex"), "buffer size = %d not a full protocol", zyz_176ex_buffer_.size);
             usleep(10000);
