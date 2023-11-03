@@ -52,7 +52,8 @@ void Zyf176ex::ImuReader()
             usleep(10000);
             continue;
         }
-        for (uint32_t i = 0; i < zyz_176ex_buffer_.size / sizeof(zyz_data_t); i++) {
+        uint32_t loop_times = zyz_176ex_buffer_.size / sizeof(zyz_data_t);
+        for (uint32_t i = 0; i < loop_times; i++) {
             uint8_t *ros_rx_buffer_ptr = zyz_176ex_buffer_.rx_buffer;
             int index                  = 0;
             zyz_data_t *res_tmp        = SearchHearLE(ros_rx_buffer_ptr, zyz_176ex_buffer_.size, index);
