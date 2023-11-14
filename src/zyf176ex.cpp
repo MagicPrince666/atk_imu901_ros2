@@ -3,8 +3,8 @@
 #include <unistd.h>
 #include <cmath>
 
-Zyf176ex::Zyf176ex(std::string port, uint32_t rate)
-    : ImuInterface(port, rate) {}
+Zyf176ex::Zyf176ex(std::string type, std::string port, uint32_t rate)
+    : ImuInterface(type, port, rate) {}
 
 Zyf176ex::~Zyf176ex()
 {
@@ -20,6 +20,14 @@ bool Zyf176ex::Init()
     // 通过工厂方法创建通讯产品
     std::shared_ptr<Communication> serial(factory->CreateCommTarget(imu_port_, baud_rate_, false));
     serial_comm_ = serial;
+
+    if(imu_type_ == "zyz_176") {
+        imu_coefficient_ = 10920;
+    } else if (imu_type_ == "zyz_143") {
+        imu_coefficient_ = 1024;
+    } else {
+        RCLCPP_ERROR(rclcpp::get_logger("Zyf176ex"), "unknow zyz imu type %s", imu_type_.c_str());
+    }
 
     imu_thread_ = std::thread([](Zyf176ex *p_this) { p_this->ImuReader(); }, this);
     return true;
@@ -44,16 +52,17 @@ void Zyf176ex::ReadBuffer(const uint8_t *buffer, const int length)
 void Zyf176ex::ImuReader()
 {
     serial_comm_->AddCallback(std::bind(&Zyf176ex::ReadBuffer, this, std::placeholders::_1, std::placeholders::_2));
+
     while (rclcpp::ok()) {
         std::unique_lock<std::mutex> lck(g_mtx_);
         g_cv_.wait_for(lck, std::chrono::milliseconds(100));
         if (zyz_176ex_buffer_.size < sizeof(zyz_data_t)) {
             RCLCPP_WARN(rclcpp::get_logger("Zyf176ex"), "buffer size = %d not a full protocol", zyz_176ex_buffer_.size);
+            RCLCPP_INFO(rclcpp::get_logger("Zyf176ex"), "buffer [%s]", Bytes2String(zyz_176ex_buffer_.rx_buffer, zyz_176ex_buffer_.size).c_str());
             usleep(10000);
             continue;
         }
-        uint32_t loop_times = zyz_176ex_buffer_.size / sizeof(zyz_data_t);
-        for (uint32_t i = 0; i < loop_times; i++) {
+        for (uint32_t i = 0; i < zyz_176ex_buffer_.size / sizeof(zyz_data_t); i++) {
             uint8_t *ros_rx_buffer_ptr = zyz_176ex_buffer_.rx_buffer;
             int index                  = 0;
             zyz_data_t *res_tmp        = SearchHearLE(ros_rx_buffer_ptr, zyz_176ex_buffer_.size, index);
@@ -74,9 +83,9 @@ void Zyf176ex::ImuReader()
 
                 std::lock_guard<std::mutex> mylock_guard(data_lock_);
                 // 加速度
-                imu_data_.linear_acceleration.x = get_data.acc_x * 9.8 / 10920;
-                imu_data_.linear_acceleration.y = get_data.acc_y * 9.8 / 10920;
-                imu_data_.linear_acceleration.z = get_data.acc_z * 9.8 / 10920;
+                imu_data_.linear_acceleration.x = get_data.acc_x * 9.8 / imu_coefficient_;
+                imu_data_.linear_acceleration.y = get_data.acc_y * 9.8 / imu_coefficient_;
+                imu_data_.linear_acceleration.z = get_data.acc_z * 9.8 / imu_coefficient_;
                 // 角速度
                 imu_data_.angular_velocity.x = get_data.gyro_x * 0.01 * M_PI / 180;
                 imu_data_.angular_velocity.y = get_data.gyro_y * 0.01 * M_PI / 180;
@@ -135,4 +144,39 @@ Imu Zyf176ex::GetImuData()
 {
     std::lock_guard<std::mutex> mylock_guard(data_lock_);
     return imu_data_;
+}
+
+std::string Zyf176ex::Bytes2String(uint8_t *data, uint32_t len)
+{
+    char temp[512];
+    std::string str("");
+    for (size_t i = 0; i < len; i++) {
+        sprintf(temp, "%02x ", data[i]);
+        str.append(temp);
+    }
+    return str;
+}
+
+void Zyf176ex::ResetHanding()
+{
+    std::string cmd = "$HRST*";
+    serial_comm_->SendBuffer((const uint8_t*)cmd.c_str(), cmd.size());
+}
+
+void Zyf176ex::ResetBias()
+{
+    std::string cmd = "$CGYR*";
+    serial_comm_->SendBuffer((const uint8_t*)cmd.c_str(), cmd.size());
+}
+
+void Zyf176ex::SoftRest()
+{
+    std::string cmd = "$SRST*";
+    serial_comm_->SendBuffer((const uint8_t*)cmd.c_str(), cmd.size());
+}
+
+void Zyf176ex::SoftVersion()
+{
+    std::string cmd = "$VERS*";
+    serial_comm_->SendBuffer((const uint8_t*)cmd.c_str(), cmd.size());
 }

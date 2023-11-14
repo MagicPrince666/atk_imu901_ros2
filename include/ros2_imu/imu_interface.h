@@ -20,9 +20,9 @@ typedef struct {
 
 typedef struct
 {
-    float roll;  /* 横滚角，单位：rad */
-    float pitch; /* 俯仰角，单位：rad */
-    float yaw;   /* 航向角，单位：rad */
+    float roll  = 0.0; /* 横滚角，单位：rad */
+    float pitch = 0.0; /* 俯仰角，单位：rad */
+    float yaw   = 0.0; /* 航向角，单位：rad */
 } Eular;
 
 typedef struct {
@@ -41,8 +41,8 @@ typedef struct {
 class ImuInterface
 {
 public:
-    ImuInterface(std::string port, uint32_t rate)
-        : imu_port_(port), baud_rate_(rate) {}
+    ImuInterface(std::string type, std::string port, uint32_t rate)
+        : imu_type_(type), imu_port_(port), baud_rate_(rate) {}
     virtual ~ImuInterface() {}
 
     virtual bool Init() = 0;
@@ -50,6 +50,7 @@ public:
     virtual Imu GetImuData() = 0;
 
 protected:
+    std::string imu_type_;
     std::string imu_port_;
     uint32_t baud_rate_;
 };

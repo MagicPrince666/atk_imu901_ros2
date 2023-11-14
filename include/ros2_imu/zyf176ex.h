@@ -35,7 +35,7 @@ typedef struct
 class Zyf176ex : public ImuInterface
 {
 public:
-    Zyf176ex(std::string port, uint32_t rate);
+    Zyf176ex(std::string type, std::string port, uint32_t rate);
     virtual ~Zyf176ex();
 
     bool Init();
@@ -47,6 +47,7 @@ private:
     std::shared_ptr<Communication> serial_comm_; // 通讯端口
     std::mutex data_lock_;
     Imu imu_data_;
+    int32_t imu_coefficient_;
     std::condition_variable g_cv_; // 全局条件变量
     std::mutex g_mtx_;             // 全局互斥锁.
 
@@ -70,6 +71,28 @@ private:
      * @param q
      */
     void Euler2Quaternion(double roll, double pitch, double yaw, Quaternion &q);
+
+    std::string Bytes2String(uint8_t *data, uint32_t len);
+
+    /**
+     * @brief 角度清零
+     */
+    void ResetHanding();
+
+    /**
+     * @brief 重置陀螺仪零偏
+     */
+    void ResetBias();
+
+    /**
+     * @brief 重启
+     */
+    void SoftRest();
+
+    /**
+     * @brief 软件版本
+     */
+    void SoftVersion();
 };
 
 #endif

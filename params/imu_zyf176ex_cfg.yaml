@@ -1,9 +1,9 @@
 /ros2_imu_node:
   ros__parameters:
-    # mode zyz/atk
-    imu_module: "zyz"
+    # mode zyz/atk zyz_176/zyz_143
+    imu_module: "zyz_143"
     # IMU端口
-    imu_port: "/dev/imu_port"
+    imu_port: "/dev/imu_serial"
     # 波特率
     baudrate: 115200
     # 1帧数据长度

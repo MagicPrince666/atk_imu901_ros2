@@ -25,8 +25,8 @@
 #include <cstring>
 #include <unistd.h>
 
-AtkMs901m::AtkMs901m(std::string port, uint32_t rate)
-    : ImuInterface(port, rate)
+AtkMs901m::AtkMs901m(std::string type, std::string port, uint32_t rate)
+    : ImuInterface(type, port, rate)
 {
     atk_ms901m_fsr_.gyro          = 0x03;
     atk_ms901m_fsr_.accelerometer = 0x01;

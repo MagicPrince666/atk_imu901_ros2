@@ -165,7 +165,7 @@ typedef struct
 class AtkMs901m : public ImuInterface
 {
 public:
-    AtkMs901m(std::string port, uint32_t rate);
+    AtkMs901m(std::string type, std::string port, uint32_t rate);
     virtual ~AtkMs901m();
 
     bool Init(); /* ATK-MS901M初始化 */

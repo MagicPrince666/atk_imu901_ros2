@@ -40,9 +40,9 @@ ImuPub::ImuPub() : rclcpp::Node("imu901m")
     RCLCPP_INFO(this->get_logger(), "frame_id = %s", frame_id_.c_str());
 
     if (imu_module == "atk") {
-        imu_data_ptr_ = std::make_shared<AtkMs901m>(port, baudrate);
-    } else if (imu_module == "zyz") {
-        imu_data_ptr_ = std::make_shared<Zyf176ex>(port, baudrate);
+        imu_data_ptr_ = std::make_shared<AtkMs901m>(imu_module, port, baudrate);
+    } else if (imu_module == "zyz_176" || imu_module == "zyz_143") {
+        imu_data_ptr_ = std::make_shared<Zyf176ex>(imu_module, port, baudrate);
     } else {
         RCLCPP_ERROR(this->get_logger(), "%s imu is not support yet", imu_module.c_str());
     }
