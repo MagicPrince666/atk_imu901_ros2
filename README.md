@@ -6,5 +6,5 @@ imu ros2包
 |---------|---------|----------|------|---------|
 | 正点原子| atk imu901m | 已支持   | leo   | 2023/11/1 |
 | 智游者  | zyf176ex | 已支持   | leo   | 2023/11/1 |
-| InvenSense | mpu6050 | 待支持   | leo   | TODO |
-| InvenSense  | mpu9250 | 待支持   | leo   | TODO |
+| InvenSense | mpu6050 | 支持中   | leo   | 2023/11/19 |
+| InvenSense  | mpu9250 | 支持中   | leo   | 2023/11/19 |

@@ -39,7 +39,7 @@ void Mpu9250::GpioInterruptHandler()
 {
     std::unique_lock<std::mutex> lck(g_mtx_);
     uint8_t ret = mpu9250_dmp_irq_handler();
-    if(!ret) {
+    if (!ret) {
         RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp irq handler fail with code %d", ret);
     }
     g_cv_.notify_all(); // 唤醒所有线程.
@@ -72,8 +72,10 @@ void Mpu9250::Mpu9250Loop()
     mpu_int_->AddCallback(std::bind(&Mpu9250::GpioInterruptHandler, this));
 
     /* init */
-    if (mpu9250_dmp_init(MPU9250_INTERFACE_IIC, MPU9250_ADDRESS_AD0_LOW, ReceiveCallback,
-                         DmpTapCallback, DmpOrientCallback) != 0) {
+    int ret = mpu9250_dmp_init(MPU9250_INTERFACE_IIC, MPU9250_ADDRESS_AD0_LOW, ReceiveCallback,
+                               DmpTapCallback, DmpOrientCallback);
+    if (ret != 0) {
+        RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp init fail with code %d!!", ret);
         return;
     }
 
