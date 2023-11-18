@@ -4,8 +4,10 @@
     imu_module: "atk"
     # IMU端口
     imu_port: "/dev/ttyS7"
-    # 波特率
-    baudrate: 921600
+    # IMU中断脚
+    imu_int: "/dev/input/event5"
+    # 波特率 500K
+    baudrate: 500000
     # 1帧数据长度
     data_len: 121
     # 话题名称

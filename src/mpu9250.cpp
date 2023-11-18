@@ -6,15 +6,21 @@ Mpu9250::Mpu9250(std::string type, std::string dev, uint32_t rate)
     : ImuInterface(type, dev, rate)
 {
     i2c_bus_ = std::make_shared<IicBus>(imu_port_);
+    i2c_bus_->IicInit();
+    GpioInterruptInit();
     RCLCPP_INFO(rclcpp::get_logger(imu_type_), "Mpu9250 Iio bus path %s", imu_port_.c_str());
     mpu9250_i2c_interface_set(i2c_bus_);
 }
 
 Mpu9250::~Mpu9250()
 {
+    if (imu_thread_.joinable()) {
+        imu_thread_.join();
+    }
+    GpioInterruptDeinit();
     mpu9250_dmp_deinit();
     g_gpio_irq_ = nullptr;
-    GpioInterruptDeinit();
+    RCLCPP_INFO(rclcpp::get_logger(imu_type_), "Close Mpu9250 device!");
 }
 
 Imu Mpu9250::GetImuData()
@@ -25,10 +31,7 @@ Imu Mpu9250::GetImuData()
 
 int Mpu9250::GpioInterruptInit()
 {
-    // mpu_int_ = new GpioKey;
-    // if (mpu_int_) {
-    //     return 0;
-    // }
+    mpu_int_ = std::make_shared<GpioKey>("/dev/input/event5");
     return 0;
 }
 
@@ -39,22 +42,7 @@ void Mpu9250::GpioInterruptDeinit()
 
 bool Mpu9250::Init()
 {
-    /* init */
-    if (GpioInterruptInit() != 0) {
-        return false;
-    }
-    g_gpio_irq_ = mpu9250_dmp_irq_handler;
-
-    /* init */
-    if (mpu9250_dmp_init(MPU9250_INTERFACE_IIC, MPU9250_ADDRESS_AD0_LOW, ReceiveCallback,
-                         DmpTapCallback, DmpOrientCallback) != 0) {
-        g_gpio_irq_ = nullptr;
-        GpioInterruptDeinit();
-
-        return false;
-    }
-
-    mpu9250_interface_delay_ms(500);
+    imu_thread_ = std::thread([](Mpu9250 *p_this) { p_this->Mpu9250Loop(); }, this);
     return true;
 }
 
@@ -70,6 +58,18 @@ void Mpu9250::Mpu9250Loop()
     float gs_pitch[128];
     float gs_roll[128];
     float gs_yaw[128];
+    g_gpio_irq_ = mpu9250_dmp_irq_handler;
+
+    /* init */
+    if (mpu9250_dmp_init(MPU9250_INTERFACE_IIC, MPU9250_ADDRESS_AD0_LOW, ReceiveCallback,
+                         DmpTapCallback, DmpOrientCallback) != 0) {
+        g_gpio_irq_ = nullptr;
+        GpioInterruptDeinit();
+
+        return;
+    }
+
+    mpu9250_interface_delay_ms(500);
 
     while (rclcpp::ok()) {
         /* read */
@@ -114,32 +114,26 @@ void Mpu9250::ReceiveCallback(uint8_t type)
     switch (type) {
     case MPU9250_INTERRUPT_MOTION: {
         mpu9250_interface_debug_print("mpu9250: irq motion.\n");
-
         break;
     }
     case MPU9250_INTERRUPT_FIFO_OVERFLOW: {
         mpu9250_interface_debug_print("mpu9250: irq fifo overflow.\n");
-
         break;
     }
     case MPU9250_INTERRUPT_FSYNC_INT: {
         mpu9250_interface_debug_print("mpu9250: irq fsync int.\n");
-
         break;
     }
     case MPU9250_INTERRUPT_DMP: {
         mpu9250_interface_debug_print("mpu9250: irq dmp\n");
-
         break;
     }
     case MPU9250_INTERRUPT_DATA_READY: {
         mpu9250_interface_debug_print("mpu9250: irq data ready\n");
-
         break;
     }
     default: {
         mpu9250_interface_debug_print("mpu9250: irq unknown code.\n");
-
         break;
     }
     }
@@ -150,37 +144,30 @@ void Mpu9250::DmpTapCallback(uint8_t count, uint8_t direction)
     switch (direction) {
     case MPU9250_DMP_TAP_X_UP: {
         mpu9250_interface_debug_print("mpu9250: tap irq x up with %d.\n", count);
-
         break;
     }
     case MPU9250_DMP_TAP_X_DOWN: {
         mpu9250_interface_debug_print("mpu9250: tap irq x down with %d.\n", count);
-
         break;
     }
     case MPU9250_DMP_TAP_Y_UP: {
         mpu9250_interface_debug_print("mpu9250: tap irq y up with %d.\n", count);
-
         break;
     }
     case MPU9250_DMP_TAP_Y_DOWN: {
         mpu9250_interface_debug_print("mpu9250: tap irq y down with %d.\n", count);
-
         break;
     }
     case MPU9250_DMP_TAP_Z_UP: {
         mpu9250_interface_debug_print("mpu9250: tap irq z up with %d.\n", count);
-
         break;
     }
     case MPU9250_DMP_TAP_Z_DOWN: {
         mpu9250_interface_debug_print("mpu9250: tap irq z down with %d.\n", count);
-
         break;
     }
     default: {
         mpu9250_interface_debug_print("mpu9250: tap irq unknown code.\n");
-
         break;
     }
     }

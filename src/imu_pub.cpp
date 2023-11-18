@@ -22,6 +22,11 @@ ImuPub::ImuPub() : rclcpp::Node("imu901m")
     this->get_parameter("imu_port", port);
     RCLCPP_INFO(this->get_logger(), "port = %s", port.c_str());
 
+    std::string imu_int;
+    this->declare_parameter("imu_int", "");
+    this->get_parameter("imu_int", imu_int);
+    RCLCPP_INFO(this->get_logger(), "imu_int = %s", imu_int.c_str());
+
     int baudrate;
     this->declare_parameter("baudrate", 115200);
     this->get_parameter("baudrate", baudrate);

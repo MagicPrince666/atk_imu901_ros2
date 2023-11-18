@@ -12,6 +12,7 @@
 #include "driver_mpu9250_dmp.h"
 #include "imu_interface.h"
 #include "iic.h"
+#include "gpio_key.h"
 #include <cstdint>
 #include <mutex>
 #include <thread>
@@ -30,6 +31,7 @@ private:
     uint8_t (*g_gpio_irq_)(void) = nullptr;
     std::thread imu_thread_;
     std::mutex data_lock_;
+    std::shared_ptr<GpioKey> mpu_int_;
     std::shared_ptr<IicBus> i2c_bus_;
     Imu imu_data_;
 

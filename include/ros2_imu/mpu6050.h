@@ -12,6 +12,7 @@
 #include "driver_mpu6050_dmp.h"
 #include "imu_interface.h"
 #include "iic.h"
+#include "gpio_key.h"
 #include "rclcpp/rclcpp.hpp"
 #include <iostream>
 #include <string>
@@ -31,8 +32,8 @@ public:
     Imu GetImuData();
 
 private:
-    // GpioKey *mpu_int_;
-    uint8_t (*gpio_irq_)(void) = nullptr;
+    uint8_t (*g_gpio_irq_)(void) = nullptr;
+    std::shared_ptr<GpioKey> mpu_int_;
     std::shared_ptr<IicBus> i2c_bus_;
     std::thread imu_thread_;
     std::mutex data_lock_;
