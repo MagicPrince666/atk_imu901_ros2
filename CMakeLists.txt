@@ -31,10 +31,16 @@ include_directories(
     ${roscpp_INCLUDE_DIRS} 
     ${roslib_INCLUDE_DIRS} 
     include
+    src/drivers
+    src/mpu6050
+    src/mpu9250
 )
 
 file(GLOB main_srcs 
     src/*.cpp
+    src/drivers/*.cpp
+    src/mpu6050/*.cpp
+    src/mpu9250/*.cpp
 )
 
 add_executable(${PROJECT_NAME}_node ${main_srcs})

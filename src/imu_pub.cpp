@@ -7,6 +7,8 @@
 #include "ros2_imu/atk_ms901m.h"
 #include "ros2_imu/imu_pub.h"
 #include "ros2_imu/zyf176ex.h"
+#include "ros2_imu/mpu6050.h"
+#include "ros2_imu/mpu9250.h"
 
 ImuPub::ImuPub() : rclcpp::Node("imu901m")
 {
@@ -43,9 +45,14 @@ ImuPub::ImuPub() : rclcpp::Node("imu901m")
         imu_data_ptr_ = std::make_shared<AtkMs901m>(imu_module, port, baudrate);
     } else if (imu_module == "zyz_176" || imu_module == "zyz_143") {
         imu_data_ptr_ = std::make_shared<Zyf176ex>(imu_module, port, baudrate);
+    } else if (imu_module == "mpu6050") {
+        imu_data_ptr_ = std::make_shared<Mpu6050>(imu_module, port, baudrate);
+    } else if (imu_module == "mpu9250") {
+        imu_data_ptr_ = std::make_shared<Mpu9250>(imu_module, port, baudrate);
     } else {
         RCLCPP_ERROR(this->get_logger(), "%s imu is not support yet", imu_module.c_str());
     }
+
     if (imu_data_ptr_) {
         RCLCPP_INFO(this->get_logger(), "%s imu start", imu_module.c_str());
         imu_data_ptr_->Init();
