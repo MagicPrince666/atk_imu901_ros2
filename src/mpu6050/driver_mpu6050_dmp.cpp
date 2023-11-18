@@ -103,7 +103,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
     if (res != 0) {
         mpu6050_interface_debug_print("mpu6050: init failed.\n");
 
-        return 1;
+        return 2;
     }
 
     /* delay 100 ms */
@@ -115,16 +115,16 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set sleep failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 3;
     }
 
     /* run the self test */
     res = mpu6050_self_test(&gs_handle, gyro_offset_raw, accel_offset_raw);
     if (res != 0) {
         mpu6050_interface_debug_print("mpu6050: self test failed.\n");
-        (void)mpu6050_deinit(&gs_handle);
+        // (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        // return 4; // 自检失败了 查找原因
     }
 
     /* set the default clock source */
@@ -133,7 +133,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set clock source failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 5;
     }
 
     /* set the default rate */
@@ -142,7 +142,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set sample rate divider failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 6;
     }
 
     /* set the default accelerometer range */
@@ -151,7 +151,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set accelerometer range failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 7;
     }
 
     /* set the default gyroscope_range */
@@ -160,7 +160,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set gyroscope range failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 8;
     }
 
     /* set the default low pass filter */
@@ -169,7 +169,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set low pass filter failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 9;
     }
 
     /* enable temperature sensor */
@@ -178,7 +178,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set temperature sensor failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 10;
     }
 
     /* set the default cycle wake up */
@@ -187,7 +187,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set cycle wake up failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 11;
     }
 
     /* set the default wake up frequency */
@@ -196,7 +196,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set wake up frequency failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 12;
     }
 
     /* enable acc x */
@@ -205,7 +205,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set standby mode failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 13;
     }
 
     /* enable acc y */
@@ -214,7 +214,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set standby mode failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 14;
     }
 
     /* enable acc z */
@@ -223,7 +223,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set standby mode failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 5;
     }
 
     /* enable gyro x */
@@ -232,7 +232,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set standby mode failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 16;
     }
 
     /* enable gyro y */
@@ -241,7 +241,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set standby mode failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 17;
     }
 
     /* enable gyro z */
@@ -250,7 +250,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set standby mode failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 18;
     }
 
     /* disable gyroscope x test */
@@ -259,7 +259,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set gyroscope test failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 19;
     }
 
     /* disable gyroscope y test */
@@ -268,7 +268,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set gyroscope test failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 20;
     }
 
     /* disable gyroscope z test */
@@ -277,7 +277,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set gyroscope test failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 21;
     }
 
     /* disable accelerometer x test */
@@ -286,7 +286,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set accelerometer test failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 22;
     }
 
     /* disable accelerometer y test */
@@ -295,7 +295,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set accelerometer test failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 23;
     }
 
     /* disable accelerometer z test */
@@ -304,7 +304,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set accelerometer test failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 24;
     }
 
     /* disable temp fifo */
@@ -313,7 +313,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set fifo enable failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 25;
     }
 
     /* disable xg fifo */
@@ -322,7 +322,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set fifo enable failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 26;
     }
 
     /* disable yg fifo */
@@ -331,7 +331,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set fifo enable failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 27;
     }
 
     /* disable zg fifo */
@@ -340,7 +340,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set fifo enable failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 28;
     }
 
     /* disable accel fifo */
@@ -349,7 +349,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set fifo enable failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 29;
     }
 
     /* enable fifo */
@@ -358,7 +358,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set fifo failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 30;
     }
 
     /* set the default interrupt level */
@@ -367,7 +367,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set interrupt level failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 31;
     }
 
     /* set the default interrupt pin type */
@@ -376,7 +376,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set interrupt pin type failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 32;
     }
 
     if (tap_callback != NULL) {
@@ -386,7 +386,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
             mpu6050_interface_debug_print("mpu6050: motion threshold convert to register failed.\n");
             (void)mpu6050_deinit(&gs_handle);
 
-            return 1;
+            return 33;
         }
 
         /* set the motion threshold */
@@ -395,7 +395,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
             mpu6050_interface_debug_print("mpu6050: set motion threshold failed.\n");
             (void)mpu6050_deinit(&gs_handle);
 
-            return 1;
+            return 34;
         }
 
         /* set the default motion duration */
@@ -404,7 +404,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
             mpu6050_interface_debug_print("mpu6050: motion duration convert to register failed.\n");
             (void)mpu6050_deinit(&gs_handle);
 
-            return 1;
+            return 35;
         }
 
         /* set the motion duration */
@@ -413,7 +413,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
             mpu6050_interface_debug_print("mpu6050: set motion duration failed.\n");
             (void)mpu6050_deinit(&gs_handle);
 
-            return 1;
+            return 36;
         }
 
         /* enable the force accel sample */
@@ -422,7 +422,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
             mpu6050_interface_debug_print("mpu6050: set force accel sample failed.\n");
             (void)mpu6050_deinit(&gs_handle);
 
-            return 1;
+            return 37;
         }
     }
 
@@ -432,7 +432,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set interrupt failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 38;
     }
 
     /* set the default fifo overflow interrupt */
@@ -441,7 +441,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set interrupt failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 39;
     }
 
     /* set the default dmp interrupt */
@@ -450,7 +450,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set interrupt failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 40;
     }
 
     /* set the default i2c master interrupt */
@@ -459,7 +459,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set interrupt failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 41;
     }
 
     /* set the default data ready interrupt */
@@ -468,7 +468,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set interrupt failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 42;
     }
 
     /* set the default latch */
@@ -477,7 +477,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set interrupt latch failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 43;
     }
 
     /* set the default interrupt read clear */
@@ -486,7 +486,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set interrupt read clear failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 44;
     }
 
     /* set the default extern sync */
@@ -495,7 +495,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set extern sync failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 45;
     }
 
     /* set the default fsync interrupt */
@@ -504,7 +504,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set fsync interrupt failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 46;
     }
 
     /* set the default fsync interrupt level */
@@ -513,7 +513,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set fsync interrupt level failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 47;
     }
 
     /* set the default iic master */
@@ -522,7 +522,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set iic master failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 48;
     }
 
     /* set the default iic bypass */
@@ -531,7 +531,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: set iic bypass failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 49;
     }
 
     /* dmp load firmware */
@@ -540,7 +540,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp load firmware failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 50;
     }
 
     /* enable axis x */
@@ -549,7 +549,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set tap axes failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 51;
     }
 
     /* enable axis y */
@@ -558,7 +558,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set tap axes failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 52;
     }
 
     /* enable axis z */
@@ -567,7 +567,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set tap axes failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 53;
     }
 
     /* set the default fifo rate */
@@ -576,7 +576,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set fifo rate failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 54;
     }
 
     /* set the default interrupt mode */
@@ -585,7 +585,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set interrupt mode failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 55;
     }
 
     /* set the default dmp orientation */
@@ -594,7 +594,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set orientation failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 56;
     }
 
     /* enable feature */
@@ -605,7 +605,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set feature failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 57;
     }
 
     /* dmp set tap callback */
@@ -614,7 +614,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set tap callback failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 58;
     }
 
     /* dmp set orient callback */
@@ -623,7 +623,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set orient callback failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 59;
     }
 
     /* set the default pedometer walk time */
@@ -632,7 +632,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set pedometer walk time failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 60;
     }
 
     /* set the default pedometer step count */
@@ -641,7 +641,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set pedometer step count failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 61;
     }
 
     /* set the default shake reject timeout */
@@ -650,7 +650,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set shake reject timeout failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 62;
     }
 
     /* set the default shake reject time */
@@ -659,7 +659,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set shake reject time failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 63;
     }
 
     /* set the default shake reject thresh */
@@ -668,7 +668,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set shake reject thresh failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 64;
     }
 
     /* set the default tap time multi */
@@ -677,7 +677,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set tap time multi failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 65;
     }
 
     /* set the default tap time */
@@ -686,7 +686,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set tap time failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 66;
     }
 
     /* set the default min tap count */
@@ -695,7 +695,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set min tap count failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 67;
     }
 
     /* set the default tap thresh x */
@@ -704,7 +704,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set tap thresh failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 68;
     }
 
     /* set the default tap thresh y */
@@ -713,7 +713,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set tap thresh failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 69;
     }
 
     /* set the default tap thresh z */
@@ -722,7 +722,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set tap thresh failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 70;
     }
 
     /* dmp gyro accel raw offset convert */
@@ -732,7 +732,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp gyro accel raw offset convert failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 71;
     }
 
     /* dmp set accel bias */
@@ -741,7 +741,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set accel bias failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 72;
     }
 
     /* dmp set gyro bias */
@@ -750,7 +750,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set gyro bias failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 73;
     }
 
     /* enable the dmp */
@@ -759,7 +759,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: dmp set enable failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 74;
     }
 
     /* force fifo reset */
@@ -768,7 +768,7 @@ uint8_t mpu6050_dmp_init(mpu6050_address_t addr_pin,
         mpu6050_interface_debug_print("mpu6050: force fifo reset failed.\n");
         (void)mpu6050_deinit(&gs_handle);
 
-        return 1;
+        return 75;
     }
 
     return 0;

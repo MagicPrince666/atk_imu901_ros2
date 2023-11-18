@@ -91,10 +91,10 @@ void Mpu6050::Mpu6050Loop()
     float gs_yaw[128];
 
     mpu_int_->AddCallback(std::bind(&Mpu6050::GpioInterruptHandler, this));
-    /* run dmp function */
-    if (mpu6050_dmp_init(MPU6050_ADDRESS_AD0_LOW, ReceiveCallback,
-                         DmpTapCallback, DmpOrientCallback) != 0) {
-        RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp init fail!!");
+    int ret = mpu6050_dmp_init(MPU6050_ADDRESS_AD0_LOW, ReceiveCallback,
+                         DmpTapCallback, DmpOrientCallback);
+    if (ret != 0) {
+        RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp init fail with code %d!!", ret);
         return;
     }
 
@@ -112,7 +112,7 @@ void Mpu6050::Mpu6050Loop()
         }
 
         /* output */
-        RCLCPP_INFO(rclcpp::get_logger(imu_type_), "fifo %d.", fifo_len);
+        // RCLCPP_INFO(rclcpp::get_logger(imu_type_), "fifo %d.", fifo_len);
         RCLCPP_INFO(rclcpp::get_logger(imu_type_), "pitch: %0.2f\troll: %0.2f\tyaw: %0.2f", gs_pitch[0], gs_roll[0], gs_yaw[0]);
 
         // RCLCPP_INFO(rclcpp::get_logger(imu_type_), "acc x[0] is %0.2fg.", gs_accel_g[0][0]);

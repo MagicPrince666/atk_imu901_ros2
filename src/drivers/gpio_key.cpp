@@ -62,7 +62,6 @@ bool GpioKey::Init()
 {
     // 绑定回调函数
     if (key_input_fd_ > 0) {
-        std::cout << "Bind epoll" << std::endl;
         MY_EPOLL.EpollAddRead(key_input_fd_, std::bind(&GpioKey::IRKey, this));
     }
     return true;
