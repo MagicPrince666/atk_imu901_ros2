@@ -6,8 +6,8 @@
 #include <sstream>
 #include <sys/stat.h>
 
-#include "ros2_imu/mpu6050.h"
 #include "driver_mpu6050_interface.h"
+#include "ros2_imu/mpu6050.h"
 
 static void a_receive_callback(uint8_t type)
 {
@@ -118,14 +118,14 @@ static void a_dmp_orient_callback(uint8_t orientation)
 }
 
 Mpu6050::Mpu6050(std::string type, std::string dev, uint32_t rate)
-: ImuInterface(type, dev, rate)
+    : ImuInterface(type, dev, rate)
 {
     i2c_bus_ = std::make_shared<IicBus>(imu_port_);
     i2c_bus_->IicInit();
     // mpu_int_ = nullptr;
     GpioInterruptInit();
     // assert(mpu_int_ != nullptr);
-    RCLCPP_INFO(rclcpp::get_logger(imu_type_),"Mpu6050 Iio bus path %s", imu_port_.c_str());
+    RCLCPP_INFO(rclcpp::get_logger(imu_type_), "Mpu6050 Iio bus path %s", imu_port_.c_str());
     mpu6050_i2c_interface_set(i2c_bus_);
 }
 
@@ -251,11 +251,15 @@ void Mpu6050::Mpu6050Loop()
 
         /* get the pedometer step count */
         if (mpu6050_dmp_get_pedometer_counter(&cnt) != 0) {
-            (void)mpu6050_dmp_deinit();
+            mpu6050_dmp_deinit();
             gpio_irq_ = nullptr;
             GpioInterruptDeinit();
             RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp get pedometer counter fail!!");
             return;
         }
     }
+    /* deinit */
+    mpu6050_dmp_deinit();
+    gpio_irq_ = nullptr;
+    GpioInterruptDeinit();
 }

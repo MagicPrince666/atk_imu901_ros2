@@ -50,7 +50,7 @@ IicBus::~IicBus()
 {
     /* close the device */
     if (close(iic_fd_) < 0) {
-        printf("%s close failed.\n", device_.c_str());
+        std::cerr << device_ << " close failed." << std::endl;
     }
 }
 
@@ -61,7 +61,7 @@ uint8_t IicBus::IicInit()
 
     /* check the fd */
     if (iic_fd_ < 0) {
-        printf("%s open failed.\n", device_.c_str());
+        std::cerr << device_ << " open failed." << std::endl;
         return -1;
     }
 
@@ -89,7 +89,7 @@ uint8_t IicBus::IicReadCmd(uint8_t addr, uint8_t *buf, uint16_t len)
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        printf("%s read cmd failed.\n", device_.c_str());
+        std::cerr << device_ << " read cmd failed." << std::endl;
         return 1;
     }
 
@@ -121,7 +121,7 @@ uint8_t IicBus::IicRead(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len)
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        printf("%s read failed.\n", device_.c_str());
+        std::cerr << device_ << " read failed." << std::endl;
         return 1;
     }
 
@@ -156,7 +156,7 @@ uint8_t IicBus::IicReadAddress16(uint8_t addr, uint16_t reg, uint8_t *buf, uint1
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        printf("%s read address16 failed.\n", device_.c_str());
+        std::cerr << device_ << " read address16 failed." << std::endl;
         return 1;
     }
 
@@ -184,7 +184,7 @@ uint8_t IicBus::IicWriteCmd(uint8_t addr, uint8_t *buf, uint16_t len)
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        printf("%s write cmd failed.\n", device_.c_str());
+        std::cerr << device_ << " write cmd failed." << std::endl;
         return 1;
     }
 
@@ -219,7 +219,7 @@ uint8_t IicBus::IicWrite(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len)
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        printf("%s write failed.\n", device_.c_str());
+        std::cerr << device_ << " write failed." << std::endl;
         return 1;
     }
 
@@ -255,7 +255,7 @@ uint8_t IicBus::IicWriteAddress16(uint8_t addr, uint16_t reg, uint8_t *buf, uint
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        printf("%s write address16 failed.\n", device_.c_str());
+        std::cerr << device_ << " write address16 failed." << std::endl;
         return 1;
     }
 

@@ -1,6 +1,6 @@
 #include "ros2_imu/mpu9250.h"
-#include "rclcpp/rclcpp.hpp"
 #include "driver_mpu9250_interface.h"
+#include "rclcpp/rclcpp.hpp"
 
 static void a_receive_callback(uint8_t type)
 {
@@ -111,10 +111,10 @@ static void a_dmp_orient_callback(uint8_t orientation)
 }
 
 Mpu9250::Mpu9250(std::string type, std::string dev, uint32_t rate)
-: ImuInterface(type, dev, rate)
+    : ImuInterface(type, dev, rate)
 {
     i2c_bus_ = std::make_shared<IicBus>(imu_port_);
-    RCLCPP_INFO(rclcpp::get_logger(imu_type_),"Mpu9250 Iio bus path %s", imu_port_.c_str());
+    RCLCPP_INFO(rclcpp::get_logger(imu_type_), "Mpu9250 Iio bus path %s", imu_port_.c_str());
     mpu9250_i2c_interface_set(i2c_bus_);
 }
 
@@ -195,9 +195,9 @@ void Mpu9250::Mpu9250Loop()
 
         /* output */
         RCLCPP_INFO(rclcpp::get_logger(imu_type_), "fifo size %d.\n", len);
-        RCLCPP_INFO(rclcpp::get_logger(imu_type_),"pitch[0] is %0.2fdps.\n", gs_pitch[0]);
-        RCLCPP_INFO(rclcpp::get_logger(imu_type_),"roll[0] is %0.2fdps.\n", gs_roll[0]);
-        RCLCPP_INFO(rclcpp::get_logger(imu_type_),"yaw[0] is %0.2fdps.\n", gs_yaw[0]);
+        RCLCPP_INFO(rclcpp::get_logger(imu_type_), "pitch[0] is %0.2fdps.\n", gs_pitch[0]);
+        RCLCPP_INFO(rclcpp::get_logger(imu_type_), "roll[0] is %0.2fdps.\n", gs_roll[0]);
+        RCLCPP_INFO(rclcpp::get_logger(imu_type_), "yaw[0] is %0.2fdps.\n", gs_yaw[0]);
         // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"acc x[0] is %0.2fg.\n", gs_accel_g[0][0]);
         // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"acc y[0] is %0.2fg.\n", gs_accel_g[0][1]);
         // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"acc z[0] is %0.2fg.\n", gs_accel_g[0][2]);
@@ -218,4 +218,7 @@ void Mpu9250::Mpu9250Loop()
             return;
         }
     }
+    mpu9250_dmp_deinit();
+    g_gpio_irq_ = nullptr;
+    GpioInterruptDeinit();
 }
