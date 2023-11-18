@@ -38,8 +38,8 @@
 #include <fcntl.h>
 #include <linux/i2c-dev.h>
 #include <linux/i2c.h>
-#include <sys/ioctl.h>
 #include <memory>
+#include <sys/ioctl.h>
 
 IicBus::IicBus(std::string dev) : device_(dev)
 {
@@ -50,7 +50,7 @@ IicBus::~IicBus()
 {
     /* close the device */
     if (close(iic_fd_) < 0) {
-        perror("iic: close failed.\n");
+        printf("%s close failed.\n", device_.c_str());
     }
 }
 
@@ -61,12 +61,11 @@ uint8_t IicBus::IicInit()
 
     /* check the fd */
     if (iic_fd_ < 0) {
-        perror("iic: open failed.\n");
-
-        return 1;
-    } else {
-        return 0;
+        printf("%s open failed.\n", device_.c_str());
+        return -1;
     }
+
+    return 0;
 }
 
 uint8_t IicBus::IicReadCmd(uint8_t addr, uint8_t *buf, uint16_t len)
@@ -90,8 +89,7 @@ uint8_t IicBus::IicReadCmd(uint8_t addr, uint8_t *buf, uint16_t len)
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        perror("iic: read failed.\n");
-
+        printf("%s read cmd failed.\n", device_.c_str());
         return 1;
     }
 
@@ -123,8 +121,7 @@ uint8_t IicBus::IicRead(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len)
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        perror("iic: read failed.\n");
-
+        printf("%s read failed.\n", device_.c_str());
         return 1;
     }
 
@@ -159,8 +156,7 @@ uint8_t IicBus::IicReadAddress16(uint8_t addr, uint16_t reg, uint8_t *buf, uint1
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        perror("iic: read failed.\n");
-
+        printf("%s read address16 failed.\n", device_.c_str());
         return 1;
     }
 
@@ -188,8 +184,7 @@ uint8_t IicBus::IicWriteCmd(uint8_t addr, uint8_t *buf, uint16_t len)
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        perror("iic: write failed.\n");
-
+        printf("%s write cmd failed.\n", device_.c_str());
         return 1;
     }
 
@@ -224,8 +219,7 @@ uint8_t IicBus::IicWrite(uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len)
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        perror("iic: write failed.\n");
-
+        printf("%s write failed.\n", device_.c_str());
         return 1;
     }
 
@@ -261,8 +255,7 @@ uint8_t IicBus::IicWriteAddress16(uint8_t addr, uint16_t reg, uint8_t *buf, uint
 
     /* transmit */
     if (ioctl(iic_fd_, I2C_RDWR, &i2c_rdwr_data) < 0) {
-        perror("iic: write failed.\n");
-
+        printf("%s write address16 failed.\n", device_.c_str());
         return 1;
     }
 

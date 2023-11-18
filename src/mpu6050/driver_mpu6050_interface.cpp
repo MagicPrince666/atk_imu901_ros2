@@ -46,16 +46,15 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <memory>
 
 #include "driver_mpu6050_interface.h"
-#include "iic.h"
 
-IicBus *g_iic_bus = nullptr;
-const char *g_iic_dev;
+std::shared_ptr<IicBus> g_iic_bus;
 
-void mpu6050_interface_set(const char *dev)
+void mpu6050_i2c_interface_set(std::shared_ptr<IicBus> iic_bus)
 {
-    g_iic_dev = dev;
+    g_iic_bus = iic_bus;
 }
 
 /**
@@ -67,8 +66,7 @@ void mpu6050_interface_set(const char *dev)
  */
 uint8_t mpu6050_interface_iic_init(void)
 {
-    g_iic_bus = new IicBus(g_iic_dev);
-    return g_iic_bus->IicInit();
+    return 0;
 }
 
 /**
@@ -80,7 +78,6 @@ uint8_t mpu6050_interface_iic_init(void)
  */
 uint8_t mpu6050_interface_iic_deinit(void)
 {
-    delete g_iic_bus;
     return 0;
 }
 

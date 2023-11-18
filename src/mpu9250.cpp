@@ -113,7 +113,9 @@ static void a_dmp_orient_callback(uint8_t orientation)
 Mpu9250::Mpu9250(std::string type, std::string dev, uint32_t rate)
 : ImuInterface(type, dev, rate)
 {
-    mpu9250_interface_set(imu_port_.c_str());
+    i2c_bus_ = std::make_shared<IicBus>(imu_port_);
+    RCLCPP_INFO(rclcpp::get_logger(imu_type_),"Mpu9250 Iio bus path %s", imu_port_.c_str());
+    mpu9250_i2c_interface_set(i2c_bus_);
 }
 
 Mpu9250::~Mpu9250()

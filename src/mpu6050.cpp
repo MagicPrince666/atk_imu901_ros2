@@ -120,11 +120,13 @@ static void a_dmp_orient_callback(uint8_t orientation)
 Mpu6050::Mpu6050(std::string type, std::string dev, uint32_t rate)
 : ImuInterface(type, dev, rate)
 {
+    i2c_bus_ = std::make_shared<IicBus>(imu_port_);
+    i2c_bus_->IicInit();
     // mpu_int_ = nullptr;
     GpioInterruptInit();
     // assert(mpu_int_ != nullptr);
-    RCLCPP_INFO(rclcpp::get_logger(imu_type_),"Mpu6050 Iio bus path ", imu_port_.c_str());
-    mpu6050_interface_set(imu_port_.c_str());
+    RCLCPP_INFO(rclcpp::get_logger(imu_type_),"Mpu6050 Iio bus path %s", imu_port_.c_str());
+    mpu6050_i2c_interface_set(i2c_bus_);
 }
 
 Mpu6050::~Mpu6050()

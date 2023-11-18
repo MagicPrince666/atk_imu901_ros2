@@ -37,8 +37,11 @@
 #ifndef DRIVER_MPU9250_INTERFACE_H
 #define DRIVER_MPU9250_INTERFACE_H
 
+#include <cstring>
+#include <memory>
 #include "driver_mpu9250.h"
-#include <string>
+#include "iic.h"
+#include "spi.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -50,7 +53,12 @@ extern "C"{
  * @ingroup  mpu9250_driver
  * @{
  */
-void mpu9250_interface_set(const char *dev);
+void mpu9250_i2c_interface_set(std::shared_ptr<IicBus> iic_bus);
+
+/**
+ * 
+*/
+void mpu9250_spi_interface_set(std::shared_ptr<SpiBus> spi_bus);
 /**
  * @brief  interface iic bus init
  * @return status code

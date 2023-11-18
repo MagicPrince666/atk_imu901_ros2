@@ -49,21 +49,20 @@
 #include <unistd.h>
 
 #include "driver_mpu9250_interface.h"
-#include "iic.h"
-#include "spi.h"
-#include <memory>
 
 std::shared_ptr<IicBus> g_i2c_bus;
 
 std::shared_ptr<SpiBus> g_spi_bus;
 
-const char * g_dev;
-
-void mpu9250_interface_set(const char *dev)
+void mpu9250_i2c_interface_set(std::shared_ptr<IicBus> iic_bus)
 {
-    g_dev = dev;
+    g_i2c_bus = iic_bus;
 }
 
+void mpu9250_spi_interface_set(std::shared_ptr<SpiBus> spi_bus)
+{
+    g_spi_bus = spi_bus;
+}
 /**
  * @brief  interface iic bus init
  * @return status code
@@ -73,7 +72,6 @@ void mpu9250_interface_set(const char *dev)
  */
 uint8_t mpu9250_interface_iic_init(void)
 {
-    g_i2c_bus = std::make_shared<IicBus>(g_dev);
     return g_i2c_bus->IicInit();
 }
 
@@ -130,7 +128,6 @@ uint8_t mpu9250_interface_iic_write(uint8_t addr, uint8_t reg, uint8_t *buf, uin
  */
 uint8_t mpu9250_interface_spi_init(void)
 {
-    g_spi_bus = std::make_shared<SpiBus>(g_dev, SPI_MODE_TYPE_3, 1000 * 500);
     return 0;
 }
 

@@ -37,8 +37,10 @@
 #ifndef DRIVER_MPU6050_INTERFACE_H
 #define DRIVER_MPU6050_INTERFACE_H
 
+#include <cstring>
+#include <memory>
 #include "driver_mpu6050.h"
-#include <string>
+#include "iic.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -50,7 +52,7 @@ extern "C"{
  * @ingroup  mpu6050_driver
  * @{
  */
-void mpu6050_interface_set(const char *dev);
+void mpu6050_i2c_interface_set(std::shared_ptr<IicBus> iic_bus);
 
 /**
  * @brief  interface iic bus init
