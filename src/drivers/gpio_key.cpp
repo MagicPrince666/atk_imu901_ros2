@@ -35,7 +35,6 @@ GpioKey::GpioKey(std::string input) : key_input_fd_(-1), dev_input_(input)
         }
     }
     assert(key_input_fd_ >= 0);
-    init();
 }
 
 GpioKey::~GpioKey(void)
@@ -52,11 +51,14 @@ int GpioKey::IRKey(void)
     int ret = read(key_input_fd_, &key, sizeof(key));
     if (ret > 0) {
         std::cout << "Type = " << key.type << " Code = " << key.code << " Value = " << key.value << std::endl;
+        if (nullptr != read_function_) {
+            read_function_();
+        }
     }
     return ret;
 }
 
-bool GpioKey::init()
+bool GpioKey::Init()
 {
     // 绑定回调函数
     if (key_input_fd_ > 0) {
@@ -64,4 +66,9 @@ bool GpioKey::init()
         MY_EPOLL.EpollAddRead(key_input_fd_, std::bind(&GpioKey::IRKey, this));
     }
     return true;
+}
+
+void GpioKey::AddCallback(std::function<void(void)> handler)
+{
+    read_function_ = handler;
 }

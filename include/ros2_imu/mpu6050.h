@@ -17,6 +17,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <condition_variable>
 #include <vector>
 #include <mutex>
 #include <thread>
@@ -32,16 +33,19 @@ public:
     Imu GetImuData();
 
 private:
-    uint8_t (*g_gpio_irq_)(void) = nullptr;
     std::shared_ptr<GpioKey> mpu_int_;
     std::shared_ptr<IicBus> i2c_bus_;
     std::thread imu_thread_;
     std::mutex data_lock_;
     Imu imu_data_;
+    std::condition_variable g_cv_; // 全局条件变量
+    std::mutex g_mtx_;             // 全局互斥锁.
 
     void Euler2Quaternion(float roll, float pitch, float yaw, Quaternion &quat);
 
     int GpioInterruptInit();
+
+    void GpioInterruptHandler();
 
     void GpioInterruptDeinit();
 

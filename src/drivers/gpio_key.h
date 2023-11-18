@@ -11,6 +11,7 @@
 
 #include <sys/time.h>
 #include <iostream>
+#include <functional>
 
 class GpioKey
 {
@@ -18,11 +19,14 @@ public:
     GpioKey(std::string input);
     ~GpioKey();
 
-    bool init();
+    bool Init();
+
+    void AddCallback(std::function<void(void)> handler);
 
 private:
     int key_input_fd_;
     std::string dev_input_;
+    std::function<void(void)> read_function_; // 接收回调
 
     int IRKey();
 };

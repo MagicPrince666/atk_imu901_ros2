@@ -26,7 +26,6 @@ Mpu6050::~Mpu6050()
     }
     GpioInterruptDeinit();
     mpu6050_dmp_deinit();
-    g_gpio_irq_ = nullptr;
     RCLCPP_INFO(rclcpp::get_logger(imu_type_), "Close mpu6050 device!");
 }
 
@@ -53,7 +52,15 @@ void Mpu6050::Euler2Quaternion(float roll, float pitch, float yaw, Quaternion &q
 int Mpu6050::GpioInterruptInit()
 {
     mpu_int_ = std::make_shared<GpioKey>("/dev/input/event5");
+    mpu_int_->Init();
     return 0;
+}
+
+void Mpu6050::GpioInterruptHandler()
+{
+    std::unique_lock<std::mutex> lck(g_mtx_);
+    mpu6050_dmp_irq_handler();
+    g_cv_.notify_all(); // 唤醒所有线程.
 }
 
 void Mpu6050::GpioInterruptDeinit()
@@ -69,19 +76,6 @@ Imu Mpu6050::GetImuData()
 
 void Mpu6050::Mpu6050Loop()
 {
-    g_gpio_irq_ = mpu6050_dmp_irq_handler;
-    /* run dmp function */
-    if (mpu6050_dmp_init(MPU6050_ADDRESS_AD0_LOW, ReceiveCallback,
-                         DmpTapCallback, DmpOrientCallback) != 0) {
-        g_gpio_irq_ = nullptr;
-        GpioInterruptDeinit();
-        RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp init fail!!");
-        return;
-    }
-
-    /* delay 500 ms */
-    mpu6050_interface_delay_ms(500);
-
     uint16_t fifo_len = 128;
     uint32_t cnt      = 0;
     int16_t gs_accel_raw[128][3];
@@ -93,8 +87,21 @@ void Mpu6050::Mpu6050Loop()
     float gs_roll[128];
     float gs_yaw[128];
 
+    mpu_int_->AddCallback(std::bind(&Mpu6050::GpioInterruptHandler, this));
+    /* run dmp function */
+    if (mpu6050_dmp_init(MPU6050_ADDRESS_AD0_LOW, ReceiveCallback,
+                         DmpTapCallback, DmpOrientCallback) != 0) {
+        RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp init fail!!");
+        return;
+    }
+
+    /* delay 500 ms */
+    mpu6050_interface_delay_ms(500);
+
     while (rclcpp::ok()) {
-        /* read */
+        std::unique_lock<std::mutex> lck(g_mtx_);
+        g_cv_.wait_for(lck, std::chrono::milliseconds(500));
+
         if (mpu6050_dmp_read_all(gs_accel_raw, gs_accel_g,
                                  gs_gyro_raw, gs_gyro_dps,
                                  gs_quat,
@@ -130,8 +137,6 @@ void Mpu6050::Mpu6050Loop()
         imu_data_.angular_velocity.z    = gs_gyro_dps[0][2] * M_PI / 180.0;
         data_lock_.unlock();
 
-        mpu6050_interface_delay_ms(100);
-
         /* get the pedometer step count */
         if (mpu6050_dmp_get_pedometer_counter(&cnt) != 0) {
             RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp get pedometer counter fail!!");
@@ -140,7 +145,6 @@ void Mpu6050::Mpu6050Loop()
     }
     /* deinit */
     mpu6050_dmp_deinit();
-    g_gpio_irq_ = nullptr;
     GpioInterruptDeinit();
 }
 

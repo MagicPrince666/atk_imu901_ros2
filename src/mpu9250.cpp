@@ -19,7 +19,6 @@ Mpu9250::~Mpu9250()
     }
     GpioInterruptDeinit();
     mpu9250_dmp_deinit();
-    g_gpio_irq_ = nullptr;
     RCLCPP_INFO(rclcpp::get_logger(imu_type_), "Close Mpu9250 device!");
 }
 
@@ -32,7 +31,15 @@ Imu Mpu9250::GetImuData()
 int Mpu9250::GpioInterruptInit()
 {
     mpu_int_ = std::make_shared<GpioKey>("/dev/input/event5");
+    mpu_int_->Init();
     return 0;
+}
+
+void Mpu9250::GpioInterruptHandler()
+{
+    std::unique_lock<std::mutex> lck(g_mtx_);
+    mpu9250_dmp_irq_handler();
+    g_cv_.notify_all(); // 唤醒所有线程.
 }
 
 void Mpu9250::GpioInterruptDeinit()
@@ -58,21 +65,21 @@ void Mpu9250::Mpu9250Loop()
     float gs_pitch[128];
     float gs_roll[128];
     float gs_yaw[128];
-    g_gpio_irq_ = mpu9250_dmp_irq_handler;
+
+    mpu_int_->AddCallback(std::bind(&Mpu9250::GpioInterruptHandler, this));
 
     /* init */
     if (mpu9250_dmp_init(MPU9250_INTERFACE_IIC, MPU9250_ADDRESS_AD0_LOW, ReceiveCallback,
                          DmpTapCallback, DmpOrientCallback) != 0) {
-        g_gpio_irq_ = nullptr;
-        GpioInterruptDeinit();
-
         return;
     }
 
     mpu9250_interface_delay_ms(500);
 
     while (rclcpp::ok()) {
-        /* read */
+        std::unique_lock<std::mutex> lck(g_mtx_);
+        g_cv_.wait_for(lck, std::chrono::milliseconds(500));
+
         if (mpu9250_dmp_read_all(gs_accel_raw, gs_accel_g,
                                  gs_gyro_raw, gs_gyro_dps,
                                  gs_quat,
@@ -94,9 +101,6 @@ void Mpu9250::Mpu9250Loop()
         // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"gyro y[0] is %0.2fdps.\n", gs_gyro_dps[0][1]);
         // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"gyro z[0] is %0.2fdps.\n", gs_gyro_dps[0][2]);
 
-        /* delay 500 ms */
-        mpu9250_interface_delay_ms(100);
-
         /* get the pedometer step count */
         int res = mpu9250_dmp_get_pedometer_counter(&cnt);
         if (res != 0) {
@@ -105,7 +109,6 @@ void Mpu9250::Mpu9250Loop()
         }
     }
     mpu9250_dmp_deinit();
-    g_gpio_irq_ = nullptr;
     GpioInterruptDeinit();
 }
 
