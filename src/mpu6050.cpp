@@ -59,7 +59,10 @@ int Mpu6050::GpioInterruptInit()
 void Mpu6050::GpioInterruptHandler()
 {
     std::unique_lock<std::mutex> lck(g_mtx_);
-    mpu6050_dmp_irq_handler();
+    uint8_t ret = mpu6050_dmp_irq_handler();
+    if(!ret) {
+        RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp irq handler fail with code %d", ret);
+    }
     g_cv_.notify_all(); // 唤醒所有线程.
 }
 
@@ -94,9 +97,6 @@ void Mpu6050::Mpu6050Loop()
         RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp init fail!!");
         return;
     }
-
-    /* delay 500 ms */
-    mpu6050_interface_delay_ms(500);
 
     while (rclcpp::ok()) {
         std::unique_lock<std::mutex> lck(g_mtx_);
