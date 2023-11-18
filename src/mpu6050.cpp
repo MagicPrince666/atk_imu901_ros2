@@ -9,114 +9,6 @@
 #include "driver_mpu6050_interface.h"
 #include "ros2_imu/mpu6050.h"
 
-static void a_receive_callback(uint8_t type)
-{
-    switch (type) {
-    case MPU6050_INTERRUPT_MOTION: {
-        mpu6050_interface_debug_print("mpu6050: irq motion.\n");
-
-        break;
-    }
-    case MPU6050_INTERRUPT_FIFO_OVERFLOW: {
-        mpu6050_interface_debug_print("mpu6050: irq fifo overflow.\n");
-
-        break;
-    }
-    case MPU6050_INTERRUPT_I2C_MAST: {
-        mpu6050_interface_debug_print("mpu6050: irq i2c master.\n");
-
-        break;
-    }
-    case MPU6050_INTERRUPT_DMP: {
-        mpu6050_interface_debug_print("mpu6050: irq dmp\n");
-
-        break;
-    }
-    case MPU6050_INTERRUPT_DATA_READY: {
-        mpu6050_interface_debug_print("mpu6050: irq data ready\n");
-
-        break;
-    }
-    default: {
-        mpu6050_interface_debug_print("mpu6050: irq unknown code.\n");
-
-        break;
-    }
-    }
-}
-
-static void a_dmp_tap_callback(uint8_t count, uint8_t direction)
-{
-    switch (direction) {
-    case MPU6050_DMP_TAP_X_UP: {
-        mpu6050_interface_debug_print("mpu6050: tap irq x up with %d.\n", count);
-
-        break;
-    }
-    case MPU6050_DMP_TAP_X_DOWN: {
-        mpu6050_interface_debug_print("mpu6050: tap irq x down with %d.\n", count);
-
-        break;
-    }
-    case MPU6050_DMP_TAP_Y_UP: {
-        mpu6050_interface_debug_print("mpu6050: tap irq y up with %d.\n", count);
-
-        break;
-    }
-    case MPU6050_DMP_TAP_Y_DOWN: {
-        mpu6050_interface_debug_print("mpu6050: tap irq y down with %d.\n", count);
-
-        break;
-    }
-    case MPU6050_DMP_TAP_Z_UP: {
-        mpu6050_interface_debug_print("mpu6050: tap irq z up with %d.\n", count);
-
-        break;
-    }
-    case MPU6050_DMP_TAP_Z_DOWN: {
-        mpu6050_interface_debug_print("mpu6050: tap irq z down with %d.\n", count);
-
-        break;
-    }
-    default: {
-        mpu6050_interface_debug_print("mpu6050: tap irq unknown code.\n");
-
-        break;
-    }
-    }
-}
-
-static void a_dmp_orient_callback(uint8_t orientation)
-{
-    switch (orientation) {
-    case MPU6050_DMP_ORIENT_PORTRAIT: {
-        mpu6050_interface_debug_print("mpu6050: orient irq portrait.\n");
-
-        break;
-    }
-    case MPU6050_DMP_ORIENT_LANDSCAPE: {
-        mpu6050_interface_debug_print("mpu6050: orient irq landscape.\n");
-
-        break;
-    }
-    case MPU6050_DMP_ORIENT_REVERSE_PORTRAIT: {
-        mpu6050_interface_debug_print("mpu6050: orient irq reverse portrait.\n");
-
-        break;
-    }
-    case MPU6050_DMP_ORIENT_REVERSE_LANDSCAPE: {
-        mpu6050_interface_debug_print("mpu6050: orient irq reverse landscape.\n");
-
-        break;
-    }
-    default: {
-        mpu6050_interface_debug_print("mpu6050: orient irq unknown code.\n");
-
-        break;
-    }
-    }
-}
-
 Mpu6050::Mpu6050(std::string type, std::string dev, uint32_t rate)
     : ImuInterface(type, dev, rate)
 {
@@ -185,8 +77,8 @@ void Mpu6050::Mpu6050Loop()
 {
     gpio_irq_ = mpu6050_dmp_irq_handler;
     /* run dmp function */
-    if (mpu6050_dmp_init(MPU6050_ADDRESS_AD0_LOW, a_receive_callback,
-                         a_dmp_tap_callback, a_dmp_orient_callback) != 0) {
+    if (mpu6050_dmp_init(MPU6050_ADDRESS_AD0_LOW, ReceiveCallback,
+                         DmpTapCallback, DmpOrientCallback) != 0) {
         gpio_irq_ = nullptr;
         GpioInterruptDeinit();
         RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp init fail!!");
@@ -197,7 +89,7 @@ void Mpu6050::Mpu6050Loop()
     mpu6050_interface_delay_ms(500);
 
     uint16_t fifo_len = 128;
-    uint32_t cnt;
+    uint32_t cnt      = 0;
     int16_t gs_accel_raw[128][3];
     int16_t gs_gyro_raw[128][3];
     float gs_accel_g[128][3];
@@ -214,9 +106,6 @@ void Mpu6050::Mpu6050Loop()
                                  gs_quat,
                                  gs_pitch, gs_roll, gs_yaw,
                                  &fifo_len) != 0) {
-            (void)mpu6050_dmp_deinit();
-            gpio_irq_ = nullptr;
-            GpioInterruptDeinit();
             RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp read all fail!!");
             return;
         }
@@ -247,13 +136,10 @@ void Mpu6050::Mpu6050Loop()
         imu_data_.angular_velocity.z    = gs_gyro_dps[0][2] * M_PI / 180.0;
         data_lock_.unlock();
 
-        mpu6050_interface_delay_ms(500);
+        mpu6050_interface_delay_ms(100);
 
         /* get the pedometer step count */
         if (mpu6050_dmp_get_pedometer_counter(&cnt) != 0) {
-            mpu6050_dmp_deinit();
-            gpio_irq_ = nullptr;
-            GpioInterruptDeinit();
             RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp get pedometer counter fail!!");
             return;
         }
@@ -262,4 +148,112 @@ void Mpu6050::Mpu6050Loop()
     mpu6050_dmp_deinit();
     gpio_irq_ = nullptr;
     GpioInterruptDeinit();
+}
+
+void Mpu6050::ReceiveCallback(uint8_t type)
+{
+    switch (type) {
+    case MPU6050_INTERRUPT_MOTION: {
+        mpu6050_interface_debug_print("mpu6050: irq motion.\n");
+
+        break;
+    }
+    case MPU6050_INTERRUPT_FIFO_OVERFLOW: {
+        mpu6050_interface_debug_print("mpu6050: irq fifo overflow.\n");
+
+        break;
+    }
+    case MPU6050_INTERRUPT_I2C_MAST: {
+        mpu6050_interface_debug_print("mpu6050: irq i2c master.\n");
+
+        break;
+    }
+    case MPU6050_INTERRUPT_DMP: {
+        mpu6050_interface_debug_print("mpu6050: irq dmp\n");
+
+        break;
+    }
+    case MPU6050_INTERRUPT_DATA_READY: {
+        mpu6050_interface_debug_print("mpu6050: irq data ready\n");
+
+        break;
+    }
+    default: {
+        mpu6050_interface_debug_print("mpu6050: irq unknown code.\n");
+
+        break;
+    }
+    }
+}
+
+void Mpu6050::DmpTapCallback(uint8_t count, uint8_t direction)
+{
+    switch (direction) {
+    case MPU6050_DMP_TAP_X_UP: {
+        mpu6050_interface_debug_print("mpu6050: tap irq x up with %d.\n", count);
+
+        break;
+    }
+    case MPU6050_DMP_TAP_X_DOWN: {
+        mpu6050_interface_debug_print("mpu6050: tap irq x down with %d.\n", count);
+
+        break;
+    }
+    case MPU6050_DMP_TAP_Y_UP: {
+        mpu6050_interface_debug_print("mpu6050: tap irq y up with %d.\n", count);
+
+        break;
+    }
+    case MPU6050_DMP_TAP_Y_DOWN: {
+        mpu6050_interface_debug_print("mpu6050: tap irq y down with %d.\n", count);
+
+        break;
+    }
+    case MPU6050_DMP_TAP_Z_UP: {
+        mpu6050_interface_debug_print("mpu6050: tap irq z up with %d.\n", count);
+
+        break;
+    }
+    case MPU6050_DMP_TAP_Z_DOWN: {
+        mpu6050_interface_debug_print("mpu6050: tap irq z down with %d.\n", count);
+
+        break;
+    }
+    default: {
+        mpu6050_interface_debug_print("mpu6050: tap irq unknown code.\n");
+
+        break;
+    }
+    }
+}
+
+void Mpu6050::DmpOrientCallback(uint8_t orientation)
+{
+    switch (orientation) {
+    case MPU6050_DMP_ORIENT_PORTRAIT: {
+        mpu6050_interface_debug_print("mpu6050: orient irq portrait.\n");
+
+        break;
+    }
+    case MPU6050_DMP_ORIENT_LANDSCAPE: {
+        mpu6050_interface_debug_print("mpu6050: orient irq landscape.\n");
+
+        break;
+    }
+    case MPU6050_DMP_ORIENT_REVERSE_PORTRAIT: {
+        mpu6050_interface_debug_print("mpu6050: orient irq reverse portrait.\n");
+
+        break;
+    }
+    case MPU6050_DMP_ORIENT_REVERSE_LANDSCAPE: {
+        mpu6050_interface_debug_print("mpu6050: orient irq reverse landscape.\n");
+
+        break;
+    }
+    default: {
+        mpu6050_interface_debug_print("mpu6050: orient irq unknown code.\n");
+
+        break;
+    }
+    }
 }

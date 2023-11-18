@@ -38,6 +38,10 @@ private:
     int GpioInterruptInit();
 
     void GpioInterruptDeinit();
+
+    static void ReceiveCallback(uint8_t type);
+    static void DmpTapCallback(uint8_t count, uint8_t direction);
+    static void DmpOrientCallback(uint8_t orientation);
 };
 
 #endif
