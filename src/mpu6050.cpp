@@ -111,24 +111,25 @@ void Mpu6050::Mpu6050Loop()
             return;
         }
 
-        /* output */
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_), "fifo %d.", fifo_len);
-        RCLCPP_INFO(rclcpp::get_logger(imu_type_), "pitch: %0.2f\troll: %0.2f\tyaw: %0.2f", gs_pitch[0], gs_roll[0], gs_yaw[0]);
-
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_), "acc x[0] is %0.2fg.", gs_accel_g[0][0]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_), "acc y[0] is %0.2fg.", gs_accel_g[0][1]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_), "acc z[0] is %0.2fg.", gs_accel_g[0][2]);
-
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_), "gyro x[0] is %0.2fdps.", gs_gyro_dps[0][0]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_), "gyro y[0] is %0.2fdps.", gs_gyro_dps[0][1]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_), "gyro z[0] is %0.2fdps.", gs_gyro_dps[0][2]);
+        for (uint32_t i = 0; i < fifo_len; i++) {
+            RCLCPP_INFO(rclcpp::get_logger(imu_type_), "eular: (%0.2f, %0.2f, %0.2f)",
+                        gs_pitch[i], gs_roll[i], gs_yaw[i]);
+            RCLCPP_INFO(rclcpp::get_logger(imu_type_), "acc (%0.2f, %0.2f, %0.2f)",
+                        gs_accel_g[i][0], gs_accel_g[i][1], gs_accel_g[i][2]);
+            RCLCPP_INFO(rclcpp::get_logger(imu_type_), "gyro (%0.2f, %0.2f, %0.2f)",
+                        gs_gyro_dps[i][0], gs_gyro_dps[i][1], gs_gyro_dps[i][2]);
+        }
 
         Eular euler;
-        euler.pitch = gs_pitch[0] * M_PI / 180.0;
-        euler.roll  = gs_roll[0] * M_PI / 180.0;
-        euler.yaw   = gs_yaw[0] * M_PI / 180.0;
+        euler.pitch = gs_pitch[fifo_len];
+        euler.roll  = gs_roll[fifo_len];
+        euler.yaw   = gs_yaw[fifo_len];
         data_lock_.lock();
         Euler2Quaternion(euler.roll, euler.pitch, euler.yaw, imu_data_.orientation);
+        // imu_data_.orientation.w         = gs_quat[0][0];
+        // imu_data_.orientation.x         = gs_quat[0][1];
+        // imu_data_.orientation.y         = gs_quat[0][2];
+        // imu_data_.orientation.z         = gs_quat[0][3];
         imu_data_.linear_acceleration.x = gs_accel_g[0][0];
         imu_data_.linear_acceleration.y = gs_accel_g[0][1];
         imu_data_.linear_acceleration.z = gs_accel_g[0][2];

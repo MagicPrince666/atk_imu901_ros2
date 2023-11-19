@@ -59,7 +59,7 @@ bool Mpu9250::Init()
 void Mpu9250::Mpu9250Loop()
 {
     uint32_t cnt;
-    uint16_t len = 128;
+    uint16_t fifo_len = 128;
     int16_t gs_accel_raw[128][3];
     float gs_accel_g[128][3];
     int16_t gs_gyro_raw[128][3];
@@ -87,22 +87,19 @@ void Mpu9250::Mpu9250Loop()
                                  gs_gyro_raw, gs_gyro_dps,
                                  gs_quat,
                                  gs_pitch, gs_roll, gs_yaw,
-                                 &len) != 0) {
+                                 &fifo_len) != 0) {
             RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp read all fail!!");
             return;
         }
 
-        /* output */
-        RCLCPP_INFO(rclcpp::get_logger(imu_type_), "fifo size %d.\n", len);
-        RCLCPP_INFO(rclcpp::get_logger(imu_type_), "pitch[0] is %0.2fdps.\n", gs_pitch[0]);
-        RCLCPP_INFO(rclcpp::get_logger(imu_type_), "roll[0] is %0.2fdps.\n", gs_roll[0]);
-        RCLCPP_INFO(rclcpp::get_logger(imu_type_), "yaw[0] is %0.2fdps.\n", gs_yaw[0]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"acc x[0] is %0.2fg.\n", gs_accel_g[0][0]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"acc y[0] is %0.2fg.\n", gs_accel_g[0][1]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"acc z[0] is %0.2fg.\n", gs_accel_g[0][2]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"gyro x[0] is %0.2fdps.\n", gs_gyro_dps[0][0]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"gyro y[0] is %0.2fdps.\n", gs_gyro_dps[0][1]);
-        // RCLCPP_INFO(rclcpp::get_logger(imu_type_),"gyro z[0] is %0.2fdps.\n", gs_gyro_dps[0][2]);
+        for (uint32_t i = 0; i < fifo_len; i++) {
+            RCLCPP_INFO(rclcpp::get_logger(imu_type_), "eular: (%0.2f, %0.2f, %0.2f)",
+                        gs_pitch[i], gs_roll[i], gs_yaw[i]);
+            RCLCPP_INFO(rclcpp::get_logger(imu_type_), "acc (%0.2f, %0.2f, %0.2f)",
+                        gs_accel_g[i][0], gs_accel_g[i][1], gs_accel_g[i][2]);
+            RCLCPP_INFO(rclcpp::get_logger(imu_type_), "gyro (%0.2f, %0.2f, %0.2f)",
+                        gs_gyro_dps[i][0], gs_gyro_dps[i][1], gs_gyro_dps[i][2]);
+        }
 
         /* get the pedometer step count */
         int res = mpu9250_dmp_get_pedometer_counter(&cnt);
