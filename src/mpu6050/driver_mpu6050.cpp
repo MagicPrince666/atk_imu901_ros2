@@ -2042,7 +2042,7 @@ uint8_t mpu6050_dmp_set_accel_bias(mpu6050_handle_t *handle, int32_t bias[3])
         accel_sf = (int64_t)16384 << 15; /* set the accel sf */
     } else if (range == 1)               /* if 4g */
     {
-        accel_sf = (int64_t)8092 << 15; /* set the accel sf */
+        accel_sf = (int64_t)8192 << 15; /* set the accel sf */
     } else if (range == 2)              /* if 8g */
     {
         accel_sf = (int64_t)4096 << 15; /* set the accel sf */
@@ -3530,9 +3530,9 @@ uint8_t mpu6050_dmp_gyro_accel_raw_offset_convert(mpu6050_handle_t *handle,
         accel_offset[2] = (int32_t)(accel_offset_raw[2] * 16384.0f); /* set accel offset 2 */
     } else if (accel_conf == 1)                                      /* ±4g */
     {
-        accel_offset[0] = (int32_t)(accel_offset_raw[0] * 8092.0f); /* set accel offset 0 */
-        accel_offset[1] = (int32_t)(accel_offset_raw[1] * 8092.0f); /* set accel offset 1 */
-        accel_offset[2] = (int32_t)(accel_offset_raw[2] * 8092.0f); /* set accel offset 2 */
+        accel_offset[0] = (int32_t)(accel_offset_raw[0] * 8192.0f); /* set accel offset 0 */
+        accel_offset[1] = (int32_t)(accel_offset_raw[1] * 8192.0f); /* set accel offset 1 */
+        accel_offset[2] = (int32_t)(accel_offset_raw[2] * 8192.0f); /* set accel offset 2 */
     } else if (accel_conf == 2)                                     /* ±8g */
     {
         accel_offset[0] = (int32_t)(accel_offset_raw[0] * 4096.0f); /* set accel offset 0 */
