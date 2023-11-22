@@ -6,8 +6,8 @@
     imu_port: "/dev/ttyS7"
     # IMU中断脚
     imu_int: "/dev/input/event5"
-    # 波特率 500K
-    baudrate: 500000
+    # 波特率 921600
+    baudrate: 921600
     # 1帧数据长度
     data_len: 121
     # 话题名称
