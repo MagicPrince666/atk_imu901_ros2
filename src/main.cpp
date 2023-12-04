@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
 
     while (ros::ok()) {
         if(chassis) {
+            chassis->ImuPubCallback();
         }
         ros::spinOnce();
         loop_rate.sleep();

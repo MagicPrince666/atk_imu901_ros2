@@ -13,7 +13,6 @@
 #include "imu_interface.h"
 #include "iic.h"
 #include "gpio_key.h"
-#include "rclcpp/rclcpp.hpp"
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -21,6 +20,11 @@
 #include <vector>
 #include <mutex>
 #include <thread>
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+#include "ros/ros.h"
+#else
+#include <rclcpp/rclcpp.hpp>
+#endif
 
 class Mpu6050 : public ImuInterface
 {

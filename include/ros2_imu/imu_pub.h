@@ -1,7 +1,7 @@
 /**
  * @file imu_pub.h
  * @author Leo Huang (846863428@qq.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2023-07-17
  * @copyright 个人版权所有 Copyright (c) 2023
@@ -12,11 +12,19 @@
 
 #include <memory>
 
-#include "rclcpp/rclcpp.hpp"
-#include <geometry_msgs/msg/twist.hpp>
-#include <sensor_msgs/msg/imu.hpp>
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+#include <ros/ros.h>
+#include <geometry_msgs/Point.h>
+#include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/Twist.h>
+#include <sensor_msgs/Imu.h>
+#else
+#include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#endif
 
 #include "imu_interface.h"
 
@@ -30,19 +38,22 @@ public:
 #endif
     ~ImuPub();
 
-private:
     /**imu_publisher_
      * @brief IMU回调
      */
     void ImuPubCallback();
+
+private:
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
     std::shared_ptr<ros::NodeHandle> ros_node_;
+    using ImuMsg = sensor_msgs::Imu;
+    std::shared_ptr<ros::Publisher> imu_pub_;
 #else
+    using ImuMsg = sensor_msgs::msg::Imu;
     std::shared_ptr<rclcpp::Node> ros_node_;
-#endif
-    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
-
+    rclcpp::Publisher<ImuMsg>::SharedPtr imu_pub_;
     rclcpp::TimerBase::SharedPtr imu_timer_;
+#endif
 
     std::shared_ptr<ImuInterface> imu_data_ptr_;
     std::string frame_id_;

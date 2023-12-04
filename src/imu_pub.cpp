@@ -3,53 +3,87 @@
 #include <thread>
 #include <unistd.h>
 
-#include "rclcpp/rclcpp.hpp"
 #include "ros2_imu/atk_ms901m.h"
 #include "ros2_imu/imu_pub.h"
-#include "ros2_imu/zyf176ex.h"
 #include "ros2_imu/mpu6050.h"
 #include "ros2_imu/mpu9250.h"
+#include "ros2_imu/zyf176ex.h"
+#include <spdlog/spdlog.h>
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+#include "ros/ros.h"
+#else
+#include "rclcpp/rclcpp.hpp"
+#endif
 
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
 ImuPub::ImuPub(std::shared_ptr<ros::NodeHandle> node)
 #else
 ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
 #endif
-: ros_node_(node)
+    : ros_node_(node)
 {
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+    std::string imu_module;
+    ros_node_->getParam("ros2_imu_node/imu_module", imu_module);
+    spdlog::info("imu_module = {}", imu_module.c_str());
+
+    std::string port;
+    ros_node_->getParam("ros2_imu_node/imu_port", port);
+    spdlog::info("port = {}", port.c_str());
+
+    std::string imu_int;
+    ros_node_->getParam("ros2_imu_node/imu_int", imu_int);
+    spdlog::info("imu_int = {}", imu_int.c_str());
+
+    int baudrate;
+    ros_node_->getParam("ros2_imu_node/baudrate", baudrate);
+    spdlog::info("baudrate = {}", baudrate);
+
+    int data_len;
+    ros_node_->getParam("ros2_imu_node/data_len", data_len);
+    spdlog::info("data_len = {}", data_len);
+
+    std::string topic;
+    ros_node_->getParam("ros2_imu_node/topic", topic);
+    spdlog::info("topic = {}", topic.c_str());
+
+    ros_node_->getParam("ros2_imu_node/imu_frame_id", frame_id_);
+    spdlog::info("frame_id = {}", frame_id_.c_str());
+#else
     std::string imu_module;
     ros_node_->declare_parameter("imu_module", "");
     ros_node_->get_parameter("imu_module", imu_module);
-    RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "imu_module = %s", imu_module.c_str());
+    spdlog::info("imu_module = {}", imu_module.c_str());
 
     std::string port;
     ros_node_->declare_parameter("imu_port", "/dev/ttyS6");
     ros_node_->get_parameter("imu_port", port);
-    RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "port = %s", port.c_str());
+    spdlog::info("port = {}", port.c_str());
 
     std::string imu_int;
     ros_node_->declare_parameter("imu_int", "");
     ros_node_->get_parameter("imu_int", imu_int);
-    RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "imu_int = %s", imu_int.c_str());
+    spdlog::info("imu_int = {}", imu_int.c_str());
 
     int baudrate;
     ros_node_->declare_parameter("baudrate", 115200);
     ros_node_->get_parameter("baudrate", baudrate);
-    RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "baudrate = %d", baudrate);
+    spdlog::info("baudrate = {}", baudrate);
 
     int data_len;
     ros_node_->declare_parameter("data_len", 0);
     ros_node_->get_parameter("data_len", data_len);
-    RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "data_len = %d", data_len);
+    spdlog::info("data_len = {}", data_len);
 
     std::string topic;
     ros_node_->declare_parameter("topic", "imu");
     ros_node_->get_parameter("topic", topic);
-    RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "topic = %s", topic.c_str());
+    spdlog::info("topic = {}", topic.c_str());
 
     ros_node_->declare_parameter("imu_frame_id", "imu");
     ros_node_->get_parameter("imu_frame_id", frame_id_);
-    RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "frame_id = %s", frame_id_.c_str());
+    spdlog::info("frame_id = {}", frame_id_.c_str());
+#endif
 
     if (imu_module == "atk") {
         imu_data_ptr_ = std::make_shared<AtkMs901m>(imu_module, port, baudrate);
@@ -60,16 +94,21 @@ ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
     } else if (imu_module == "mpu9250") {
         imu_data_ptr_ = std::make_shared<Mpu9250>(imu_module, port, baudrate);
     } else {
-        RCLCPP_ERROR(rclcpp::get_logger(__FUNCTION__), "%s imu is not support yet", imu_module.c_str());
+        spdlog::error("{} imu is not support yet", imu_module.c_str());
     }
 
     if (imu_data_ptr_) {
-        RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "%s imu start", imu_module.c_str());
+        spdlog::info("{} imu start", imu_module.c_str());
         imu_data_ptr_->Init();
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+        imu_pub_ = std::make_shared<ros::Publisher>(ros_node_->advertise<ImuMsg>(topic, 10));
+#else
+        imu_pub_ = ros_node_->create_publisher<ImuMsg>(topic, 10);
 
-        imu_pub_   = ros_node_->create_publisher<sensor_msgs::msg::Imu>(topic, 10);
         imu_timer_ = ros_node_->create_wall_timer(
             std::chrono::milliseconds(10), std::bind(&ImuPub::ImuPubCallback, this));
+#endif
+        
     }
 }
 
@@ -80,7 +119,7 @@ ImuPub::~ImuPub()
 void ImuPub::ImuPubCallback()
 {
     // 定义IMU数据
-    sensor_msgs::msg::Imu imu_msg;
+    ImuMsg imu_msg;
 
     if (imu_data_ptr_) {
         Imu get_imu = imu_data_ptr_->GetImuData();
@@ -105,9 +144,9 @@ void ImuPub::ImuPubCallback()
 
     imu_msg.header.frame_id = frame_id_;
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
-    imu_msg.header.stamp    = ros::Time::now();
+    imu_msg.header.stamp = ros::Time::now();
 #else
-    imu_msg.header.stamp    = ros_node_->get_clock()->now();
+    imu_msg.header.stamp = ros_node_->get_clock()->now();
 #endif
     imu_pub_->publish(imu_msg);
 }

@@ -1,7 +1,14 @@
 #include "ros2_imu/zyf176ex.h"
-#include "rclcpp/rclcpp.hpp"
-#include <unistd.h>
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+#include "ros/ros.h"
+// #define RCLCPP_INFO ROS_INFO
+// #define RCLCPP_WARN ROS_WARN
+// #define RCLCPP_ERROR ROS_ERROR
+#else
+#include <rclcpp/rclcpp.hpp>
+#endif
 #include <cmath>
+#include <unistd.h>
 
 Zyf176ex::Zyf176ex(std::string type, std::string port, uint32_t rate)
     : ImuInterface(type, port, rate) {}
@@ -21,12 +28,16 @@ bool Zyf176ex::Init()
     std::shared_ptr<Communication> serial(factory->CreateCommTarget(imu_port_, baud_rate_, false));
     serial_comm_ = serial;
 
-    if(imu_type_ == "zyz_176") {
+    if (imu_type_ == "zyz_176") {
         imu_coefficient_ = 10920;
     } else if (imu_type_ == "zyz_143") {
         imu_coefficient_ = 1024;
     } else {
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+        ROS_ERROR("unknow zyz imu type %s", imu_type_.c_str());
+#else
         RCLCPP_ERROR(rclcpp::get_logger("Zyf176ex"), "unknow zyz imu type %s", imu_type_.c_str());
+#endif
     }
 
     imu_thread_ = std::thread([](Zyf176ex *p_this) { p_this->ImuReader(); }, this);
@@ -53,12 +64,22 @@ void Zyf176ex::ImuReader()
 {
     serial_comm_->AddCallback(std::bind(&Zyf176ex::ReadBuffer, this, std::placeholders::_1, std::placeholders::_2));
 
-    while (rclcpp::ok()) {
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+    while (ros::ok())
+#else
+    while (rclcpp::ok())
+#endif 
+    {
         std::unique_lock<std::mutex> lck(g_mtx_);
         g_cv_.wait_for(lck, std::chrono::milliseconds(100));
         if (zyz_176ex_buffer_.size < sizeof(zyz_data_t)) {
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+            ROS_WARN("buffer size = %d not a full protocol", zyz_176ex_buffer_.size);
+            ROS_INFO("buffer [%s]", Bytes2String(zyz_176ex_buffer_.rx_buffer, zyz_176ex_buffer_.size).c_str());
+#else
             RCLCPP_WARN(rclcpp::get_logger("Zyf176ex"), "buffer size = %d not a full protocol", zyz_176ex_buffer_.size);
             RCLCPP_INFO(rclcpp::get_logger("Zyf176ex"), "buffer [%s]", Bytes2String(zyz_176ex_buffer_.rx_buffer, zyz_176ex_buffer_.size).c_str());
+#endif
             usleep(10000);
             continue;
         }
@@ -160,23 +181,23 @@ std::string Zyf176ex::Bytes2String(uint8_t *data, uint32_t len)
 void Zyf176ex::ResetHanding()
 {
     std::string cmd = "$HRST*";
-    serial_comm_->SendBuffer((const uint8_t*)cmd.c_str(), cmd.size());
+    serial_comm_->SendBuffer((const uint8_t *)cmd.c_str(), cmd.size());
 }
 
 void Zyf176ex::ResetBias()
 {
     std::string cmd = "$CGYR*";
-    serial_comm_->SendBuffer((const uint8_t*)cmd.c_str(), cmd.size());
+    serial_comm_->SendBuffer((const uint8_t *)cmd.c_str(), cmd.size());
 }
 
 void Zyf176ex::SoftRest()
 {
     std::string cmd = "$SRST*";
-    serial_comm_->SendBuffer((const uint8_t*)cmd.c_str(), cmd.size());
+    serial_comm_->SendBuffer((const uint8_t *)cmd.c_str(), cmd.size());
 }
 
 void Zyf176ex::SoftVersion()
 {
     std::string cmd = "$VERS*";
-    serial_comm_->SendBuffer((const uint8_t*)cmd.c_str(), cmd.size());
+    serial_comm_->SendBuffer((const uint8_t *)cmd.c_str(), cmd.size());
 }

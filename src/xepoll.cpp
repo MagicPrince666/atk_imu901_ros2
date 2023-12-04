@@ -9,7 +9,11 @@
 #include <string>
 
 #include "ros2_imu/xepoll.h"
-#include "rclcpp/rclcpp.hpp"
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+#include "ros/ros.h"
+#else
+#include <rclcpp/rclcpp.hpp>
+#endif
 
 Epoll::Epoll(void)
 {
@@ -156,7 +160,12 @@ bool Epoll::EpoolQuit()
 
 int Epoll::EpollLoop()
 {
-    while (rclcpp::ok()) {
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+    while (ros::ok())
+#else
+    while (rclcpp::ok())
+#endif 
+    {
 #ifdef __APPLE__
         struct timespec timeout;
         timeout.tv_sec  = 1;

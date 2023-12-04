@@ -57,6 +57,38 @@ file(GLOB main_srcs
 
 if(USE_ROS1_MIDDLE_PRICE)
 ######################## 使用ROS1 作为中间件 ###########################
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  std_msgs
+  geometry_msgs
+  message_generation
+  sensor_msgs
+)
+
+find_package(spdlog REQUIRED)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+#   geometry_msgs
+# )
+
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+)
+
+catkin_package(
+  CATKIN_DEPENDS
+  message_runtime
+)
+
+add_executable(${PROJECT_NAME}_node ${main_srcs})
+add_dependencies(${PROJECT_NAME}_node std_msgs geometry_msgs sensor_msgs) 
+
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} pthread spdlog::spdlog)
+
+install(DIRECTORY ${PROJECT_NAME}_node
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 #######################################################################
 else()
 ######################## 使用ROS2 作为中间件 ###########################

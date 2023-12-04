@@ -19,11 +19,16 @@
  */
 
 #include "ros2_imu/atk_ms901m.h"
-#include "rclcpp/rclcpp.hpp"
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+#include "ros/ros.h"
+#else
+#include <rclcpp/rclcpp.hpp>
+#endif
 
 #include <cmath>
 #include <cstring>
 #include <unistd.h>
+#include <spdlog/spdlog.h>
 
 AtkMs901m::AtkMs901m(std::string type, std::string port, uint32_t rate)
     : ImuInterface(type, port, rate)
@@ -96,7 +101,12 @@ void AtkMs901m::ReadBuffer(const uint8_t *buffer, const int length)
 void AtkMs901m::ImuReader()
 {
     serial_comm_->AddCallback(std::bind(&AtkMs901m::ReadBuffer, this, std::placeholders::_1, std::placeholders::_2));
-    while (rclcpp::ok()) {
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+    while (ros::ok())
+#else
+    while (rclcpp::ok())
+#endif 
+    {
         std::unique_lock<std::mutex> lck(g_mtx_);
         g_cv_.wait_for(lck, std::chrono::milliseconds(100));
         for (uint32_t i = 0; atk_ms901m_buffer_.size >= 6; i++) {
@@ -105,7 +115,11 @@ void AtkMs901m::ImuReader()
             atk_ms901m_frame_t *res_tmp = SearchHearLE(ros_rx_buffer_ptr, atk_ms901m_buffer_.size, index);
             if (res_tmp == nullptr) {
                 // 已经处理完所有可识别的包
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+                ROS_WARN("not found buffer head size = %d", atk_ms901m_buffer_.size);
+#else
                 RCLCPP_WARN(rclcpp::get_logger(__FUNCTION__), "not found buffer head size = %d", atk_ms901m_buffer_.size);
+#endif
                 break;
             } else {
                 atk_ms901m_frame_t imu_frame;
@@ -137,7 +151,7 @@ void AtkMs901m::ImuReader()
                     // 覆盖掉原来的buff
                     memcpy(atk_ms901m_buffer_.rx_buffer, buffer.get(), atk_ms901m_buffer_.size);
                 } else {
-                    RCLCPP_WARN(rclcpp::get_logger(__FUNCTION__), "Check sum fail");
+                    spdlog::warn("Check sum fail");
                     continue;
                 }
 
@@ -187,18 +201,18 @@ void AtkMs901m::ImuReader()
                     case ATK_MS901M_FRAME_ID_REG_GYROFSR /* 获取ATK-MS901M陀螺仪满量程 */: {
                         if (imu_frame.dat[0] < 6) {
                             atk_ms901m_fsr_.gyro = imu_frame.dat[0];
-                            RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "full gyro = %d", atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro]);
+                            spdlog::info("full gyro = {}", atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro]);
                         } else {
-                            RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "get imu gyro fail %d", imu_frame.dat[0]);
+                            spdlog::info("get imu gyro fail {}", imu_frame.dat[0]);
                         }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_ACCFSR /* 获取ATK-MS901M加速度计满量程 */: {
                         if (imu_frame.dat[0] < 4) {
                             atk_ms901m_fsr_.accelerometer = imu_frame.dat[0];
-                            RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "full accelerometer = %d", atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer]);
+                            spdlog::info("full accelerometer = {}", atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer]);
                         } else {
-                            RCLCPP_ERROR(rclcpp::get_logger(__FUNCTION__), "get imu accelerometer fail %d", imu_frame.dat[0]);
+                            spdlog::error("get imu accelerometer fail {}s", imu_frame.dat[0]);
                         }
                     } break;
 
@@ -260,7 +274,7 @@ void AtkMs901m::ImuReader()
                         break;
                     }
                 } else {
-                    RCLCPP_WARN(rclcpp::get_logger(__FUNCTION__), "unknow head = %02x%02x", imu_frame.head_l, imu_frame.head_h);
+                    spdlog::warn("unknow head = {:02x}{:02x}", imu_frame.head_l, imu_frame.head_h);
                 }
             }
         }
@@ -323,7 +337,12 @@ uint8_t AtkMs901m::GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t i
     }
     uint8_t *ros_rx_buffer_ptr = atk_ms901m_buffer_.rx_buffer;
 
-    while (rclcpp::ok()) {
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+    while (ros::ok())
+#else
+    while (rclcpp::ok())
+#endif
+    {
         uint32_t index              = 0;
         atk_ms901m_frame_t *res_tmp = SearchHearLE(ros_rx_buffer_ptr, atk_ms901m_buffer_.size, index);
         if (res_tmp == nullptr) {

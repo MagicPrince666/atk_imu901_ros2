@@ -1,6 +1,11 @@
 #include "ros2_imu/mpu9250.h"
+#include <spdlog/spdlog.h>
 #include "driver_mpu9250_interface.h"
-#include "rclcpp/rclcpp.hpp"
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+#include "ros/ros.h"
+#else
+#include <rclcpp/rclcpp.hpp>
+#endif
 
 Mpu9250::Mpu9250(std::string type, std::string dev, uint32_t rate)
     : ImuInterface(type, dev, rate)
@@ -8,7 +13,7 @@ Mpu9250::Mpu9250(std::string type, std::string dev, uint32_t rate)
     i2c_bus_ = std::make_shared<IicBus>(imu_port_);
     i2c_bus_->IicInit();
     GpioInterruptInit();
-    RCLCPP_INFO(rclcpp::get_logger(imu_type_), "Mpu9250 Iio bus path %s", imu_port_.c_str());
+    spdlog::info("Mpu9250 Iio bus path {}", imu_port_.c_str());
     mpu9250_i2c_interface_set(i2c_bus_);
 }
 
@@ -19,7 +24,8 @@ Mpu9250::~Mpu9250()
     }
     GpioInterruptDeinit();
     mpu9250_dmp_deinit();
-    RCLCPP_INFO(rclcpp::get_logger(imu_type_), "Close Mpu9250 device!");
+
+    spdlog::info("Close Mpu9250 device!");
 }
 
 Imu Mpu9250::GetImuData()
@@ -40,7 +46,7 @@ void Mpu9250::GpioInterruptHandler()
     std::unique_lock<std::mutex> lck(g_mtx_);
     uint8_t ret = mpu9250_dmp_irq_handler();
     if (!ret) {
-        RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp irq handler fail with code %d", ret);
+       spdlog::error("dmp irq handler fail with code {}", ret);
     }
     g_cv_.notify_all(); // 唤醒所有线程.
 }
@@ -75,11 +81,16 @@ void Mpu9250::Mpu9250Loop()
     int ret = mpu9250_dmp_init(MPU9250_INTERFACE_IIC, MPU9250_ADDRESS_AD0_LOW, ReceiveCallback,
                                DmpTapCallback, DmpOrientCallback);
     if (ret != 0) {
-        RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp init fail with code %d!!", ret);
+        spdlog::warn("dmp init fail with code {}!!", ret);
         return;
     }
 
-    while (rclcpp::ok()) {
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+    while (ros::ok())
+#else
+    while (rclcpp::ok())
+#endif 
+    {
         std::unique_lock<std::mutex> lck(g_mtx_);
         g_cv_.wait_for(lck, std::chrono::milliseconds(500));
 
@@ -88,23 +99,23 @@ void Mpu9250::Mpu9250Loop()
                                  gs_quat,
                                  gs_pitch, gs_roll, gs_yaw,
                                  &fifo_len) != 0) {
-            RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp read all fail!!");
+            spdlog::error("dmp read all fail!!");
             return;
         }
 
         for (uint32_t i = 0; i < fifo_len; i++) {
-            RCLCPP_INFO(rclcpp::get_logger(imu_type_), "eular: (%0.2f, %0.2f, %0.2f)",
-                        gs_pitch[i], gs_roll[i], gs_yaw[i]);
-            RCLCPP_INFO(rclcpp::get_logger(imu_type_), "acc (%0.2f, %0.2f, %0.2f)",
-                        gs_accel_g[i][0], gs_accel_g[i][1], gs_accel_g[i][2]);
-            RCLCPP_INFO(rclcpp::get_logger(imu_type_), "gyro (%0.2f, %0.2f, %0.2f)",
-                        gs_gyro_dps[i][0], gs_gyro_dps[i][1], gs_gyro_dps[i][2]);
+            spdlog::info("eular: ({}, {}, {})",
+                     gs_pitch[i], gs_roll[i], gs_yaw[i]);
+            spdlog::info("acc ({}, {}, {})",
+                     gs_accel_g[i][0], gs_accel_g[i][1], gs_accel_g[i][2]);
+            spdlog::info("gyro ({}, {}, {})",
+                     gs_gyro_dps[i][0], gs_gyro_dps[i][1], gs_gyro_dps[i][2]);
         }
 
         /* get the pedometer step count */
         int res = mpu9250_dmp_get_pedometer_counter(&cnt);
         if (res != 0) {
-            RCLCPP_ERROR(rclcpp::get_logger(imu_type_), "dmp get pedometer counter fail!!");
+            spdlog::warn("dmp get pedometer counter fail!!");
             return;
         }
     }

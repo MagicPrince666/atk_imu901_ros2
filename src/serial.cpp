@@ -9,7 +9,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "rclcpp/rclcpp.hpp"
 #include "ros2_imu/serial.h"
 #include "ros2_imu/xepoll.h"
 
