@@ -1,5 +1,9 @@
-#include "rclcpp/rclcpp.hpp"
 #include "ros2_imu/imu_pub.h"
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+#include "ros/ros.h"
+#else
+#include "rclcpp/rclcpp.hpp"
+#endif
 
 #ifdef BACKTRACE_DEBUG
 #include <execinfo.h>
@@ -60,10 +64,24 @@ int main(int argc, char *argv[])
     signal(SIGABRT, _signal_handler); // SIGABRT，由调用abort函数产生，进程非正常退出
 #endif
 
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+    ros::init(argc, argv, "imu901m");
+    ros::Rate loop_rate(100);
+    auto ros_node = std::make_shared<ros::NodeHandle>();
+    auto chassis = std::make_shared<ImuPub>(ros_node);
+
+    while (ros::ok()) {
+        if(chassis) {
+        }
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
+#else
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<ImuPub>());
+    auto node = std::make_shared<rclcpp::Node>("imu901m");
+    std::unique_ptr<ImuPub> imu_mode(new ImuPub(node));
     rclcpp::shutdown();
-    return 0;
+#endif
 
     return 0;
 }

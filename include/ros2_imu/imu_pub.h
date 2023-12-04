@@ -20,10 +20,14 @@
 
 #include "imu_interface.h"
 
-class ImuPub : public rclcpp::Node
+class ImuPub
 {
 public:
-    ImuPub();
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+    ImuPub(std::shared_ptr<ros::NodeHandle> node);
+#else
+    ImuPub(std::shared_ptr<rclcpp::Node> node);
+#endif
     ~ImuPub();
 
 private:
@@ -31,7 +35,11 @@ private:
      * @brief IMU回调
      */
     void ImuPubCallback();
-
+#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
+    std::shared_ptr<ros::NodeHandle> ros_node_;
+#else
+    std::shared_ptr<rclcpp::Node> ros_node_;
+#endif
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
 
     rclcpp::TimerBase::SharedPtr imu_timer_;
