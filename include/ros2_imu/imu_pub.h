@@ -45,8 +45,8 @@ public:
 
 private:
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
-    std::shared_ptr<ros::NodeHandle> ros_node_;
     using ImuMsg = sensor_msgs::Imu;
+    std::shared_ptr<ros::NodeHandle> ros_node_;
     std::shared_ptr<ros::Publisher> imu_pub_;
 #else
     using ImuMsg = sensor_msgs::msg::Imu;
