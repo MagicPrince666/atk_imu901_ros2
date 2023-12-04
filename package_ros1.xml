@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ros2_imu</name>
+  <version>0.0.0</version>
+  <description>TODO: Package description</description>
+  <maintainer email="846863428@qq.com">orangepi</maintainer>
+  <license>TODO: License declaration</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <buildtool_depend>message_generation</buildtool_depend>
+  <buildtool_depend>sensor_msgs</buildtool_depend>
+
+  <export>
+  </export>
+</package>
