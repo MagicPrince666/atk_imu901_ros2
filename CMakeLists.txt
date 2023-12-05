@@ -82,7 +82,7 @@ catkin_package(
 )
 
 add_executable(${PROJECT_NAME}_node ${main_srcs})
-add_dependencies(${PROJECT_NAME}_node std_msgs geometry_msgs sensor_msgs) 
+add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS}) 
 
 target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} pthread spdlog::spdlog)
 
