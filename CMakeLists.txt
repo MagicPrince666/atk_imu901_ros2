@@ -20,6 +20,8 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
   add_definitions(-DBACKTRACE_DEBUG)
 endif()
 
+find_package(spdlog REQUIRED)
+
 message(STATUS "${LIB_NAME} Ros version : $ENV{ROS_DISTRO}")
 if ($ENV{ROS_DISTRO} MATCHES "iron")
   add_definitions(-DUSE_IRON_VERSION)
@@ -65,7 +67,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
 )
 
-find_package(spdlog REQUIRED)
 # generate_messages(
 #   DEPENDENCIES
 #   std_msgs
@@ -104,7 +105,7 @@ include_directories(
 )
 
 add_executable(${PROJECT_NAME}_node ${main_srcs})
-target_link_libraries(${PROJECT_NAME}_node pthread)
+target_link_libraries(${PROJECT_NAME}_node pthread spdlog::spdlog)
 ament_target_dependencies(${PROJECT_NAME}_node rclcpp std_msgs geometry_msgs sensor_msgs)
 
 install(TARGETS
