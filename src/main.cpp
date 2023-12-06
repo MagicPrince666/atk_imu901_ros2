@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
         ros::spinOnce();
         loop_rate.sleep();
     }
+    ros::shutdown();
 #else
     rclcpp::init(argc, argv);
     auto node = std::make_shared<rclcpp::Node>("imu901m");
