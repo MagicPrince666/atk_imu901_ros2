@@ -20,8 +20,6 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
   add_definitions(-DBACKTRACE_DEBUG)
 endif()
 
-find_package(spdlog REQUIRED)
-
 message(STATUS "${LIB_NAME} Ros version : $ENV{ROS_DISTRO}")
 if ($ENV{ROS_DISTRO} MATCHES "iron")
   add_definitions(-DUSE_IRON_VERSION)
@@ -85,7 +83,7 @@ catkin_package(
 add_executable(${PROJECT_NAME}_node ${main_srcs})
 add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS}) 
 
-target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} pthread spdlog::spdlog)
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} pthread)
 
 install(DIRECTORY ${PROJECT_NAME}_node
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
@@ -105,7 +103,7 @@ include_directories(
 )
 
 add_executable(${PROJECT_NAME}_node ${main_srcs})
-target_link_libraries(${PROJECT_NAME}_node pthread spdlog::spdlog)
+target_link_libraries(${PROJECT_NAME}_node pthread)
 ament_target_dependencies(${PROJECT_NAME}_node rclcpp std_msgs geometry_msgs sensor_msgs)
 
 install(TARGETS
