@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
     rclcpp::init(argc, argv);
     auto node = std::make_shared<rclcpp::Node>("imu901m");
     std::unique_ptr<ImuPub> imu_mode(new ImuPub(node));
+    rclcpp::spin(node);
     rclcpp::shutdown();
 #endif
 
