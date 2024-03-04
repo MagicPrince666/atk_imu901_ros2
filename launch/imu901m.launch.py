@@ -17,7 +17,7 @@ def generate_launch_description():
     ROS_DISTRO=''
     ROS_DISTRO = os.getenv('ROS_DISTRO')
     print("Current ROS2 Version: ",ROS_DISTRO)
-    if ROS_DISTRO == 'humble' or ROS_DISTRO == 'foxy':
+    if ROS_DISTRO == 'humble' or ROS_DISTRO == 'galactic' or ROS_DISTRO == 'foxy' or ROS_DISTRO == 'iron':
         return LaunchDescription([
             Node(namespace='/', package='ros2_imu', executable='ros2_imu_node', name='ros2_imu_node', parameters=[imu_cfg], output='screen'),
             Node(package='tf2_ros', executable='static_transform_publisher', arguments=['0', '0', '0.02','0', '0', '0', '1','base_link','imu_link']),
