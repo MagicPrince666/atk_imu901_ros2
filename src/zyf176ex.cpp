@@ -118,6 +118,8 @@ void Zyf176ex::ImuReader()
 
                 // RCLCPP_INFO(rclcpp::get_logger(), "roll = %lf  pitch = %lf yaw = %lf", roll, pitch, yaw);
                 Euler2Quaternion(imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw, imu_data_.orientation);
+            } else {
+                break;
             }
         }
     }
