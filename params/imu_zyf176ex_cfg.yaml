@@ -1,11 +1,14 @@
 /ros2_imu_node:
   ros__parameters:
-    # mode zyz/atk zyz_176/zyz_143
-    imu_module: "zyz_143"
-    # IMU端口
-    imu_port: "/dev/imu_serial"
-    # 波特率
-    baudrate: 115200
+    imu:
+      # mode zyz/atk zyz_176/zyz_143
+      module: "zyz_143"
+      # IMU端口
+      port: "/dev/imu_serial"
+      # 波特率
+      baudrate: 115200
+      # 中断脚
+      interupt: -1
     # 1帧数据长度
     data_len: 24
     # 话题名称

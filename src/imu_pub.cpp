@@ -51,23 +51,23 @@ ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
     spdlog::info("frame_id = {}", frame_id_.c_str());
 #else
     std::string imu_module;
-    ros_node_->declare_parameter("imu_module", "");
-    ros_node_->get_parameter("imu_module", imu_module);
+    ros_node_->declare_parameter("imu.module", "");
+    ros_node_->get_parameter("imu.module", imu_module);
     spdlog::info("imu_module = {}", imu_module.c_str());
 
     std::string port;
-    ros_node_->declare_parameter("imu_port", "/dev/ttyS6");
-    ros_node_->get_parameter("imu_port", port);
+    ros_node_->declare_parameter("imu.port", "/dev/ttyS6");
+    ros_node_->get_parameter("imu.port", port);
     spdlog::info("port = {}", port.c_str());
 
-    std::string imu_int;
-    ros_node_->declare_parameter("imu_int", "");
-    ros_node_->get_parameter("imu_int", imu_int);
-    spdlog::info("imu_int = {}", imu_int.c_str());
+    int imu_int;
+    ros_node_->declare_parameter("imu.interupt", -1);
+    ros_node_->get_parameter("imu.interupt", imu_int);
+    spdlog::info("imu_int = {}", imu_int);
 
     int baudrate;
-    ros_node_->declare_parameter("baudrate", 115200);
-    ros_node_->get_parameter("baudrate", baudrate);
+    ros_node_->declare_parameter("imu.baudrate", 115200);
+    ros_node_->get_parameter("imu.baudrate", baudrate);
     spdlog::info("baudrate = {}", baudrate);
 
     int data_len;

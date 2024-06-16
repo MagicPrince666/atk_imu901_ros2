@@ -52,8 +52,8 @@ void Mpu6050::Euler2Quaternion(float roll, float pitch, float yaw, Quaternion &q
 
 int Mpu6050::GpioInterruptInit()
 {
-    mpu_int_ = std::make_shared<GpioKey>("/dev/input/event5");
-    mpu_int_->Init();
+    // mpu_int_ = std::make_shared<GpioKey>("/dev/input/event5");
+    // mpu_int_->Init();
     return 0;
 }
 
@@ -91,7 +91,9 @@ void Mpu6050::Mpu6050Loop()
     float gs_roll[128];
     float gs_yaw[128];
 
-    mpu_int_->AddCallback(std::bind(&Mpu6050::GpioInterruptHandler, this));
+    if (mpu_int_) {
+        mpu_int_->AddCallback(std::bind(&Mpu6050::GpioInterruptHandler, this));
+    }
     int ret = mpu6050_dmp_init(MPU6050_ADDRESS_AD0_LOW, ReceiveCallback,
                                DmpTapCallback, DmpOrientCallback);
     if (ret != 0) {

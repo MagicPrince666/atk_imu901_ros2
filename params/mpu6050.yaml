@@ -1,11 +1,14 @@
 /ros2_imu_node:
   ros__parameters:
-    # mode zyz/atk
-    imu_module: "mpu6050"
-    # IMU端口
-    imu_port: "/dev/i2c-4"
-    # 波特率
-    baudrate: 4000
+    imu:
+      # mode zyz/atk
+      module: "mpu6050"
+      # IMU端口
+      port: "/dev/i2c-4"
+      # 波特率
+      baudrate: 4000
+      # 中断脚
+      interupt: -1
     # 1帧数据长度
     data_len: 121
     # 话题名称
