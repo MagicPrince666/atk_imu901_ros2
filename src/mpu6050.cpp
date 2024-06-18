@@ -55,6 +55,7 @@ int Mpu6050::GpioInterruptInit()
 {
     if (!imu_conf_.int_chip.empty() && imu_conf_.int_line != -1) {
         mpu_int_ = std::make_shared<GpioChip>(imu_conf_.int_chip, imu_conf_.int_line);
+        mpu_int_->AddEvent(std::bind(&Mpu6050::ReadHander, this, std::placeholders::_1, std::placeholders::_2));
         mpu_int_->Init();
     }
     return 0;
@@ -102,9 +103,6 @@ void Mpu6050::Mpu6050Loop()
     float gs_roll[128];
     float gs_yaw[128];
 
-    if (mpu_int_) {
-        mpu_int_->AddEvent(std::bind(&Mpu6050::ReadHander, this, std::placeholders::_1, std::placeholders::_2));
-    }
     int ret = mpu6050_dmp_init(MPU6050_ADDRESS_AD0_LOW, ReceiveCallback,
                                DmpTapCallback, DmpOrientCallback);
     if (ret != 0) {

@@ -39,6 +39,7 @@ int Mpu9250::GpioInterruptInit()
 {
     if (!imu_conf_.int_chip.empty() && imu_conf_.int_line != -1) {
         mpu_int_ = std::make_shared<GpioChip>(imu_conf_.int_chip, imu_conf_.int_line);
+        mpu_int_->AddEvent(std::bind(&Mpu9250::ReadHander, this, std::placeholders::_1, std::placeholders::_2));
         mpu_int_->Init();
     }
     return 0;
@@ -85,10 +86,6 @@ void Mpu9250::Mpu9250Loop()
     float gs_pitch[128];
     float gs_roll[128];
     float gs_yaw[128];
-
-    if (mpu_int_) {
-        mpu_int_->AddEvent(std::bind(&Mpu9250::ReadHander, this, std::placeholders::_1, std::placeholders::_2));
-    }
 
     /* init */
     int ret = mpu9250_dmp_init(MPU9250_INTERFACE_IIC, MPU9250_ADDRESS_AD0_LOW, ReceiveCallback,
