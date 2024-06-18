@@ -8,7 +8,9 @@
       # 波特率
       baudrate: 4000
       # 中断脚
-      interupt: -1
+      interupt:
+        chip: "/dev/gpiochip3"
+        line: 3
     # 1帧数据长度
     data_len: 121
     # 话题名称

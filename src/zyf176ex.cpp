@@ -10,8 +10,8 @@
 #include <cmath>
 #include <unistd.h>
 
-Zyf176ex::Zyf176ex(std::string type, std::string port, uint32_t rate)
-    : ImuInterface(type, port, rate) {}
+Zyf176ex::Zyf176ex(ImuConf conf)
+    : ImuInterface(conf) {}
 
 Zyf176ex::~Zyf176ex()
 {
@@ -25,18 +25,18 @@ bool Zyf176ex::Init()
     // 创建通讯部件工厂,这一步可以优化到从lunch配置文件选择初始化不同的通讯部件工厂
     std::shared_ptr<CommFactory> factory(new SerialComm());
     // 通过工厂方法创建通讯产品
-    std::shared_ptr<Communication> serial(factory->CreateCommTarget(imu_port_, baud_rate_, false));
+    std::shared_ptr<Communication> serial(factory->CreateCommTarget(imu_conf_.port, imu_conf_.baudrate, false));
     serial_comm_ = serial;
 
-    if (imu_type_ == "zyz_176") {
+    if (imu_conf_.module == "zyz_176") {
         imu_coefficient_ = 10920;
-    } else if (imu_type_ == "zyz_143") {
+    } else if (imu_conf_.module == "zyz_143") {
         imu_coefficient_ = 1024;
     } else {
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
-        ROS_ERROR("unknow zyz imu type %s", imu_type_.c_str());
+        ROS_ERROR("unknow zyz imu type %s", imu_conf_.module.c_str());
 #else
-        RCLCPP_ERROR(rclcpp::get_logger("Zyf176ex"), "unknow zyz imu type %s", imu_type_.c_str());
+        RCLCPP_ERROR(rclcpp::get_logger("Zyf176ex"), "unknow zyz imu type %s", imu_conf_.module.c_str());
 #endif
     }
 

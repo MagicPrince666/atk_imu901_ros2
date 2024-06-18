@@ -22,22 +22,20 @@ ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
 #endif
     : ros_node_(node)
 {
+    ImuConf conf;
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
-    std::string imu_module;
-    ros_node_->getParam("ros2_imu_node/imu_module", imu_module);
-    spdlog::info("imu_module = {}", imu_module.c_str());
+    ros_node_->getParam("ros2_imu_node/imu_module", conf.module);
+    spdlog::info("imu_module = {}", conf.module.c_str());
 
-    std::string port;
-    ros_node_->getParam("ros2_imu_node/imu_port", port);
-    spdlog::info("port = {}", port.c_str());
+    ros_node_->getParam("ros2_imu_node/imu_port", conf.port);
+    spdlog::info("port = {}", conf.port.c_str());
 
     std::string imu_int;
     ros_node_->getParam("ros2_imu_node/imu_int", imu_int);
     spdlog::info("imu_int = {}", imu_int.c_str());
 
-    int baudrate;
-    ros_node_->getParam("ros2_imu_node/baudrate", baudrate);
-    spdlog::info("baudrate = {}", baudrate);
+    ros_node_->getParam("ros2_imu_node/baudrate", conf.baudrate);
+    spdlog::info("baudrate = {}", conf.baudrate);
 
     int data_len;
     ros_node_->getParam("ros2_imu_node/data_len", data_len);
@@ -50,25 +48,25 @@ ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
     ros_node_->getParam("ros2_imu_node/imu_frame_id", frame_id_);
     spdlog::info("frame_id = {}", frame_id_.c_str());
 #else
-    std::string imu_module;
     ros_node_->declare_parameter("imu.module", "");
-    ros_node_->get_parameter("imu.module", imu_module);
-    spdlog::info("imu_module = {}", imu_module.c_str());
+    ros_node_->get_parameter("imu.module", conf.module);
+    spdlog::info("imu_module = {}", conf.module.c_str());
 
-    std::string port;
     ros_node_->declare_parameter("imu.port", "/dev/ttyS6");
-    ros_node_->get_parameter("imu.port", port);
-    spdlog::info("port = {}", port.c_str());
+    ros_node_->get_parameter("imu.port", conf.port);
+    spdlog::info("port = {}", conf.port.c_str());
 
-    int imu_int;
-    ros_node_->declare_parameter("imu.interupt", -1);
-    ros_node_->get_parameter("imu.interupt", imu_int);
-    spdlog::info("imu_int = {}", imu_int);
+    ros_node_->declare_parameter("imu.interupt.chip", "");
+    ros_node_->get_parameter("imu.interupt.chip", conf.int_chip);
+    spdlog::info("interupt chip = {}", conf.int_chip);
 
-    int baudrate;
+    ros_node_->declare_parameter("imu.interupt.line", -1);
+    ros_node_->get_parameter("imu.interupt.line", conf.int_line);
+    spdlog::info("interupt line = {}", conf.int_line);
+
     ros_node_->declare_parameter("imu.baudrate", 115200);
-    ros_node_->get_parameter("imu.baudrate", baudrate);
-    spdlog::info("baudrate = {}", baudrate);
+    ros_node_->get_parameter("imu.baudrate", conf.baudrate);
+    spdlog::info("baudrate = {}", conf.baudrate);
 
     int data_len;
     ros_node_->declare_parameter("data_len", 0);
@@ -85,20 +83,20 @@ ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
     spdlog::info("frame_id = {}", frame_id_.c_str());
 #endif
 
-    if (imu_module == "atk") {
-        imu_data_ptr_ = std::make_shared<AtkMs901m>(imu_module, port, baudrate);
-    } else if (imu_module == "zyz_176" || imu_module == "zyz_143") {
-        imu_data_ptr_ = std::make_shared<Zyf176ex>(imu_module, port, baudrate);
-    } else if (imu_module == "mpu6050") {
-        imu_data_ptr_ = std::make_shared<Mpu6050>(imu_module, port, baudrate);
-    } else if (imu_module == "mpu9250") {
-        imu_data_ptr_ = std::make_shared<Mpu9250>(imu_module, port, baudrate);
+    if (conf.module == "atk") {
+        imu_data_ptr_ = std::make_shared<AtkMs901m>(conf);
+    } else if (conf.module == "zyz_176" || conf.module == "zyz_143") {
+        imu_data_ptr_ = std::make_shared<Zyf176ex>(conf);
+    } else if (conf.module == "mpu6050") {
+        imu_data_ptr_ = std::make_shared<Mpu6050>(conf);
+    } else if (conf.module == "mpu9250") {
+        imu_data_ptr_ = std::make_shared<Mpu9250>(conf);
     } else {
-        spdlog::error("{} imu is not support yet", imu_module.c_str());
+        spdlog::error("{} imu is not support yet", conf.module.c_str());
     }
 
     if (imu_data_ptr_) {
-        spdlog::info("{} imu start", imu_module.c_str());
+        spdlog::info("{} imu start", conf.module.c_str());
         imu_data_ptr_->Init();
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
         imu_pub_ = std::make_shared<ros::Publisher>(ros_node_->advertise<ImuMsg>(topic, 10));

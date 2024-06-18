@@ -12,7 +12,7 @@
 #include "driver_mpu6050_dmp.h"
 #include "imu_interface.h"
 #include "iic.h"
-#include "gpio_key.h"
+#include "gpio.h"
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -29,7 +29,7 @@
 class Mpu6050 : public ImuInterface
 {
 public:
-    Mpu6050(std::string type, std::string dev, uint32_t rate);
+    Mpu6050(ImuConf conf);
     ~Mpu6050();
 
     bool Init();
@@ -37,7 +37,7 @@ public:
     Imu GetImuData();
 
 private:
-    std::shared_ptr<GpioKey> mpu_int_;
+    std::shared_ptr<Gpio> mpu_int_;
     std::shared_ptr<IicBus> i2c_bus_;
     std::thread imu_thread_;
     std::mutex data_lock_;
@@ -54,6 +54,8 @@ private:
     void GpioInterruptDeinit();
 
     void Mpu6050Loop();
+
+    void ReadHander(const bool val, const uint64_t timestamp);
 
     static void ReceiveCallback(uint8_t type);
     static void DmpTapCallback(uint8_t count, uint8_t direction);

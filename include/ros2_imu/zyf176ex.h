@@ -35,7 +35,7 @@ typedef struct
 class Zyf176ex : public ImuInterface
 {
 public:
-    Zyf176ex(std::string type, std::string port, uint32_t rate);
+    Zyf176ex(ImuConf conf);
     virtual ~Zyf176ex();
 
     bool Init();

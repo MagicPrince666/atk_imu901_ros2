@@ -9,14 +9,15 @@
 
 #include "driver_mpu6050_interface.h"
 #include "ros2_imu/mpu6050.h"
+#include "gpio_chip.h"
 
-Mpu6050::Mpu6050(std::string type, std::string dev, uint32_t rate)
-    : ImuInterface(type, dev, rate)
+Mpu6050::Mpu6050(ImuConf conf)
+    : ImuInterface(conf)
 {
-    i2c_bus_ = std::make_shared<IicBus>(imu_port_);
+    i2c_bus_ = std::make_shared<IicBus>(imu_conf_.port);
     i2c_bus_->IicInit();
     GpioInterruptInit();
-    spdlog::info("Mpu6050 Iio bus path {}", imu_port_.c_str());
+    spdlog::info("Mpu6050 Iio bus path {}", imu_conf_.port.c_str());
     mpu6050_i2c_interface_set(i2c_bus_);
 }
 
@@ -52,8 +53,8 @@ void Mpu6050::Euler2Quaternion(float roll, float pitch, float yaw, Quaternion &q
 
 int Mpu6050::GpioInterruptInit()
 {
-    // mpu_int_ = std::make_shared<GpioKey>("/dev/input/event5");
-    // mpu_int_->Init();
+    mpu_int_ = std::make_shared<GpioChip>(imu_conf_.int_chip, imu_conf_.int_line);
+    mpu_int_->Init();
     return 0;
 }
 
@@ -78,6 +79,14 @@ Imu Mpu6050::GetImuData()
     return imu_data_;
 }
 
+void Mpu6050::ReadHander(const bool val, const uint64_t timestamp)
+{
+    if (!val) {
+        GpioInterruptHandler();
+    }
+    if (timestamp) {}
+}
+
 void Mpu6050::Mpu6050Loop()
 {
     uint16_t fifo_len = 128;
@@ -92,7 +101,7 @@ void Mpu6050::Mpu6050Loop()
     float gs_yaw[128];
 
     if (mpu_int_) {
-        mpu_int_->AddCallback(std::bind(&Mpu6050::GpioInterruptHandler, this));
+        mpu_int_->AddEvent(std::bind(&Mpu6050::ReadHander, this, std::placeholders::_1, std::placeholders::_2));
     }
     int ret = mpu6050_dmp_init(MPU6050_ADDRESS_AD0_LOW, ReceiveCallback,
                                DmpTapCallback, DmpOrientCallback);

@@ -1,19 +1,20 @@
 #include "ros2_imu/mpu9250.h"
 #include <spdlog/spdlog.h>
 #include "driver_mpu9250_interface.h"
+#include "gpio_chip.h"
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
 #include "ros/ros.h"
 #else
 #include <rclcpp/rclcpp.hpp>
 #endif
 
-Mpu9250::Mpu9250(std::string type, std::string dev, uint32_t rate)
-    : ImuInterface(type, dev, rate)
+Mpu9250::Mpu9250(ImuConf conf)
+    : ImuInterface(conf)
 {
-    i2c_bus_ = std::make_shared<IicBus>(imu_port_);
+    i2c_bus_ = std::make_shared<IicBus>(imu_conf_.port);
     i2c_bus_->IicInit();
     GpioInterruptInit();
-    spdlog::info("Mpu9250 Iio bus path {}", imu_port_.c_str());
+    spdlog::info("Mpu9250 Iio bus path {}", imu_conf_.port.c_str());
     mpu9250_i2c_interface_set(i2c_bus_);
 }
 
@@ -36,7 +37,7 @@ Imu Mpu9250::GetImuData()
 
 int Mpu9250::GpioInterruptInit()
 {
-    mpu_int_ = std::make_shared<GpioKey>("/dev/input/event5");
+    mpu_int_ = std::make_shared<GpioChip>(imu_conf_.int_chip, imu_conf_.int_line);
     mpu_int_->Init();
     return 0;
 }
@@ -62,6 +63,14 @@ bool Mpu9250::Init()
     return true;
 }
 
+void Mpu9250::ReadHander(const bool val, const uint64_t timestamp)
+{
+    if (!val) {
+        GpioInterruptHandler();
+    }
+    if (timestamp) {}
+}
+
 void Mpu9250::Mpu9250Loop()
 {
     uint32_t cnt;
@@ -75,7 +84,7 @@ void Mpu9250::Mpu9250Loop()
     float gs_roll[128];
     float gs_yaw[128];
 
-    mpu_int_->AddCallback(std::bind(&Mpu9250::GpioInterruptHandler, this));
+    mpu_int_->AddEvent(std::bind(&Mpu9250::ReadHander, this, std::placeholders::_1, std::placeholders::_2));
 
     /* init */
     int ret = mpu9250_dmp_init(MPU9250_INTERFACE_IIC, MPU9250_ADDRESS_AD0_LOW, ReceiveCallback,

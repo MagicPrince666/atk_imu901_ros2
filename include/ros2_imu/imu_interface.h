@@ -38,11 +38,19 @@ typedef struct {
     Eular eular;                 // 欧拉角
 } Imu;
 
+typedef struct {
+    std::string module;
+    std::string port;
+    std::string int_chip;
+    int int_line;
+    int baudrate;
+} ImuConf;
+
 class ImuInterface
 {
 public:
-    ImuInterface(std::string type, std::string port, uint32_t rate)
-        : imu_type_(type), imu_port_(port), baud_rate_(rate) {}
+    ImuInterface(ImuConf conf)
+        : imu_conf_(conf) {}
     virtual ~ImuInterface() {}
 
     virtual bool Init() = 0;
@@ -50,9 +58,7 @@ public:
     virtual Imu GetImuData() = 0;
 
 protected:
-    std::string imu_type_;
-    std::string imu_port_;
-    uint32_t baud_rate_;
+    ImuConf imu_conf_;
 };
 
 #endif

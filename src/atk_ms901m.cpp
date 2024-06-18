@@ -30,8 +30,8 @@
 #include <unistd.h>
 #include <spdlog/spdlog.h>
 
-AtkMs901m::AtkMs901m(std::string type, std::string port, uint32_t rate)
-    : ImuInterface(type, port, rate)
+AtkMs901m::AtkMs901m(ImuConf conf)
+    : ImuInterface(conf)
 {
     atk_ms901m_fsr_.gyro          = 0x03;
     atk_ms901m_fsr_.accelerometer = 0x01;
@@ -39,7 +39,7 @@ AtkMs901m::AtkMs901m(std::string type, std::string port, uint32_t rate)
     // 创建通讯部件工厂,这一步可以优化到从lunch配置文件选择初始化不同的通讯部件工厂
     std::shared_ptr<CommFactory> factory(new SerialComm());
     // 通过工厂方法创建通讯产品
-    std::shared_ptr<Communication> serial(factory->CreateCommTarget(imu_port_, baud_rate_, false));
+    std::shared_ptr<Communication> serial(factory->CreateCommTarget(imu_conf_.port, imu_conf_.baudrate, false));
     serial_comm_ = serial;
 }
 

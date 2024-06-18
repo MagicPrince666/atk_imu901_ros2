@@ -12,7 +12,7 @@
 #include "driver_mpu9250_dmp.h"
 #include "imu_interface.h"
 #include "iic.h"
-#include "gpio_key.h"
+#include "gpio.h"
 #include <cstdint>
 #include <mutex>
 #include <thread>
@@ -21,7 +21,7 @@
 class Mpu9250 : public ImuInterface
 {
 public:
-    Mpu9250(std::string type, std::string dev, uint32_t rate);
+    Mpu9250(ImuConf conf);
     ~Mpu9250();
 
     bool Init();
@@ -31,7 +31,7 @@ public:
 private:
     std::thread imu_thread_;
     std::mutex data_lock_;
-    std::shared_ptr<GpioKey> mpu_int_;
+    std::shared_ptr<Gpio> mpu_int_;
     std::shared_ptr<IicBus> i2c_bus_;
     Imu imu_data_;
     std::condition_variable g_cv_; // 全局条件变量
@@ -44,6 +44,8 @@ private:
     void GpioInterruptHandler();
 
     void GpioInterruptDeinit();
+
+    void ReadHander(const bool val, const uint64_t timestamp);
 
     static void ReceiveCallback(uint8_t type);
     static void DmpTapCallback(uint8_t count, uint8_t direction);
