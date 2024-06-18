@@ -53,8 +53,10 @@ void Mpu6050::Euler2Quaternion(float roll, float pitch, float yaw, Quaternion &q
 
 int Mpu6050::GpioInterruptInit()
 {
-    mpu_int_ = std::make_shared<GpioChip>(imu_conf_.int_chip, imu_conf_.int_line);
-    mpu_int_->Init();
+    if (!imu_conf_.int_chip.empty() && imu_conf_.int_line != -1) {
+        mpu_int_ = std::make_shared<GpioChip>(imu_conf_.int_chip, imu_conf_.int_line);
+        mpu_int_->Init();
+    }
     return 0;
 }
 
