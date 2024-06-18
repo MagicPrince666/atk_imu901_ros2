@@ -24,17 +24,19 @@ ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
 {
     ImuConf conf;
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
-    ros_node_->getParam("ros2_imu_node/imu_module", conf.module);
+    ros_node_->getParam("ros2_imu_node/imu.module", conf.module);
     spdlog::info("imu_module = {}", conf.module.c_str());
 
-    ros_node_->getParam("ros2_imu_node/imu_port", conf.port);
+    ros_node_->getParam("ros2_imu_node/imu.port", conf.port);
     spdlog::info("port = {}", conf.port.c_str());
 
-    std::string imu_int;
-    ros_node_->getParam("ros2_imu_node/imu_int", imu_int);
-    spdlog::info("imu_int = {}", imu_int.c_str());
+    ros_node_->getParam("ros2_imu_node/imu.interupt.chip", conf.int_chip);
+    spdlog::info("interupt chip = {}", conf.int_chip);
 
-    ros_node_->getParam("ros2_imu_node/baudrate", conf.baudrate);
+    ros_node_->getParam("ros2_imu_node/imu.interupt.line", conf.int_line);
+    spdlog::info("interupt line = {}", conf.int_line);
+
+    ros_node_->getParam("ros2_imu_node/imu.baudrate", conf.baudrate);
     spdlog::info("baudrate = {}", conf.baudrate);
 
     int data_len;
