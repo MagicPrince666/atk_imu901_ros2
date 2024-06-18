@@ -8,7 +8,9 @@
       # 波特率
       baudrate: 115200
       # 中断脚
-      interupt: -1
+      interupt:
+        chip: ""
+        line: -1
     # 1帧数据长度
     data_len: 24
     # 话题名称

@@ -5,10 +5,12 @@
       module: "atk"
       # IMU端口
       port: "/dev/ttyS7"
-      # IMU中断脚
-      interupt: "/dev/input/event5"
       # 波特率 921600
       baudrate: 921600
+      # 中断脚
+      interupt:
+        chip: ""
+        line: -1
     # 1帧数据长度
     data_len: 121
     # 话题名称
