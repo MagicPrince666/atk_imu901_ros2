@@ -6,11 +6,11 @@
       # IMU端口
       port: "/dev/i2c-5"
       # 波特率
-      baudrate: 4000
+      baudrate: 400000
       # 中断脚
       interupt:
-        chip: "/dev/gpiochip3"
-        line: 3
+        chip: "/dev/gpiochip1"
+        line: 4
     # 1帧数据长度
     data_len: 121
     # 话题名称
