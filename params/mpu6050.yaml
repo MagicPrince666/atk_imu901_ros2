@@ -4,7 +4,7 @@
       # mode zyz/atk
       module: "mpu6050"
       # IMU端口
-      port: "/dev/i2c-4"
+      port: "/dev/i2c-5"
       # 波特率
       baudrate: 4000
       # 中断脚
