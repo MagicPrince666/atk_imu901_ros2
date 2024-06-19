@@ -125,16 +125,17 @@ void Mpu6050::Mpu6050Loop()
                                  gs_pitch, gs_roll, gs_yaw,
                                  &fifo_len) != 0) {
             spdlog::error("dmp read all fail!!");
-            return;
+            // return;
+            continue;
         }
-
+        // spdlog::info("fifo len = {}", fifo_len);
         for (uint32_t i = 0; i < fifo_len; i++) {
             spdlog::info("eular: ({}, {}, {})",
                         gs_pitch[i], gs_roll[i], gs_yaw[i]);
-            spdlog::info("acc ({}, {}, {})",
-                        gs_accel_g[i][0], gs_accel_g[i][1], gs_accel_g[i][2]);
-            spdlog::info("gyro ({}, {}, {})",
-                        gs_gyro_dps[i][0], gs_gyro_dps[i][1], gs_gyro_dps[i][2]);
+            // spdlog::info("acc ({}, {}, {})",
+            //             gs_accel_g[i][0], gs_accel_g[i][1], gs_accel_g[i][2]);
+            // spdlog::info("gyro ({}, {}, {})",
+            //             gs_gyro_dps[i][0], gs_gyro_dps[i][1], gs_gyro_dps[i][2]);
         }
 
         Eular euler;
