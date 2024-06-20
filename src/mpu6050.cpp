@@ -117,7 +117,7 @@ void Mpu6050::Mpu6050Loop()
 #endif 
     {
         std::unique_lock<std::mutex> lck(g_mtx_);
-        g_cv_.wait_for(lck, std::chrono::milliseconds(500));
+        g_cv_.wait_for(lck, std::chrono::milliseconds(100));
 
         if (mpu6050_dmp_read_all(gs_accel_raw, gs_accel_g,
                                  gs_gyro_raw, gs_gyro_dps,
@@ -129,25 +129,25 @@ void Mpu6050::Mpu6050Loop()
             continue;
         }
         // spdlog::info("fifo len = {}", fifo_len);
-        for (uint32_t i = 0; i < fifo_len; i++) {
-            spdlog::info("eular: ({}, {}, {})",
-                        gs_pitch[i], gs_roll[i], gs_yaw[i]);
-            // spdlog::info("acc ({}, {}, {})",
-            //             gs_accel_g[i][0], gs_accel_g[i][1], gs_accel_g[i][2]);
-            // spdlog::info("gyro ({}, {}, {})",
-            //             gs_gyro_dps[i][0], gs_gyro_dps[i][1], gs_gyro_dps[i][2]);
-        }
+        // for (uint32_t i = 0; i < fifo_len; i++) {
+        //     spdlog::info("eular: ({}, {}, {})",
+        //                 gs_pitch[i], gs_roll[i], gs_yaw[i]);
+        //     // spdlog::info("acc ({}, {}, {})",
+        //     //             gs_accel_g[i][0], gs_accel_g[i][1], gs_accel_g[i][2]);
+        //     // spdlog::info("gyro ({}, {}, {})",
+        //     //             gs_gyro_dps[i][0], gs_gyro_dps[i][1], gs_gyro_dps[i][2]);
+        // }
 
         Eular euler;
         euler.pitch = gs_pitch[fifo_len];
         euler.roll  = gs_roll[fifo_len];
         euler.yaw   = gs_yaw[fifo_len];
         data_lock_.lock();
-        Euler2Quaternion(euler.roll, euler.pitch, euler.yaw, imu_data_.orientation);
-        // imu_data_.orientation.w         = gs_quat[0][0];
-        // imu_data_.orientation.x         = gs_quat[0][1];
-        // imu_data_.orientation.y         = gs_quat[0][2];
-        // imu_data_.orientation.z         = gs_quat[0][3];
+        // Euler2Quaternion(euler.roll, euler.pitch, euler.yaw, imu_data_.orientation);
+        imu_data_.orientation.w         = gs_quat[0][0];
+        imu_data_.orientation.x         = gs_quat[0][1];
+        imu_data_.orientation.y         = gs_quat[0][2];
+        imu_data_.orientation.z         = gs_quat[0][3];
         imu_data_.linear_acceleration.x = gs_accel_g[0][0];
         imu_data_.linear_acceleration.y = gs_accel_g[0][1];
         imu_data_.linear_acceleration.z = gs_accel_g[0][2];
