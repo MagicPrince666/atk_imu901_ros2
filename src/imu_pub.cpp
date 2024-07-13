@@ -24,30 +24,30 @@ ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
 {
     ImuConf conf;
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
-    ros_node_->getParam("ros2_imu_node/imu.module", conf.module);
+    ros_node_->getParam("ros2_imu_node/ros__parameters/imu/module", conf.module);
     spdlog::info("imu_module = {}", conf.module.c_str());
 
-    ros_node_->getParam("ros2_imu_node/imu.port", conf.port);
+    ros_node_->getParam("ros2_imu_node/ros__parameters/imu/port", conf.port);
     spdlog::info("port = {}", conf.port.c_str());
 
-    ros_node_->getParam("ros2_imu_node/imu.interupt.chip", conf.int_chip);
+    ros_node_->getParam("ros2_imu_node/ros__parameters/imu/interupt/chip", conf.int_chip);
     spdlog::info("interupt chip = {}", conf.int_chip);
 
-    ros_node_->getParam("ros2_imu_node/imu.interupt.line", conf.int_line);
+    ros_node_->getParam("ros2_imu_node/ros__parameters/imu/interupt/line", conf.int_line);
     spdlog::info("interupt line = {}", conf.int_line);
 
-    ros_node_->getParam("ros2_imu_node/imu.baudrate", conf.baudrate);
+    ros_node_->getParam("ros2_imu_node/ros__parameters/imu/baudrate", conf.baudrate);
     spdlog::info("baudrate = {}", conf.baudrate);
 
     int data_len;
-    ros_node_->getParam("ros2_imu_node/data_len", data_len);
+    ros_node_->getParam("ros2_imu_node/ros__parameters/data_len", data_len);
     spdlog::info("data_len = {}", data_len);
 
     std::string topic;
-    ros_node_->getParam("ros2_imu_node/topic", topic);
+    ros_node_->getParam("ros2_imu_node/ros__parameters/topic", topic);
     spdlog::info("topic = {}", topic.c_str());
 
-    ros_node_->getParam("ros2_imu_node/imu_frame_id", frame_id_);
+    ros_node_->getParam("ros2_imu_node/ros__parameters/imu_frame_id", frame_id_);
     spdlog::info("frame_id = {}", frame_id_.c_str());
 #else
     ros_node_->declare_parameter("imu.module", "");
@@ -102,6 +102,8 @@ ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
         imu_data_ptr_->Init();
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
         imu_pub_ = std::make_shared<ros::Publisher>(ros_node_->advertise<ImuMsg>(topic, 10));
+
+        imu_timer_ = ros_node_->createTimer(ros::Duration(0.01), std::bind(&ImuPub::ImuPubCallback, this));
 #else
         imu_pub_ = ros_node_->create_publisher<ImuMsg>(topic, 10);
 

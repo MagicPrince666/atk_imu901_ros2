@@ -1,0 +1,8 @@
+<?xml version="1.1"?>
+
+<launch>
+  <rosparam file="$(find ros2_imu)/params/imu_zyf176ex_cfg.yaml" command="load"/>
+  <node name="imu901m" pkg="ros2_imu" type="ros2_imu_node" respawn="false" output="screen">
+  </node>
+</launch>
+

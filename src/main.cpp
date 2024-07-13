@@ -66,17 +66,10 @@ int main(int argc, char *argv[])
 
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
     ros::init(argc, argv, "imu901m");
-    ros::Rate loop_rate(100);
     auto ros_node = std::make_shared<ros::NodeHandle>();
-    auto chassis = std::make_shared<ImuPub>(ros_node);
+    auto imu_pub = std::make_shared<ImuPub>(ros_node);
 
-    while (ros::ok()) {
-        if(chassis) {
-            chassis->ImuPubCallback();
-        }
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
+    ros::spin();
     ros::shutdown();
 #else
     rclcpp::init(argc, argv);

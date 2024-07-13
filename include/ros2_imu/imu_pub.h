@@ -48,6 +48,7 @@ private:
     using ImuMsg = sensor_msgs::Imu;
     std::shared_ptr<ros::NodeHandle> ros_node_;
     std::shared_ptr<ros::Publisher> imu_pub_;
+    ros::Timer imu_timer_;
 #else
     using ImuMsg = sensor_msgs::msg::Imu;
     std::shared_ptr<rclcpp::Node> ros_node_;
