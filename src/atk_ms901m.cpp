@@ -58,16 +58,12 @@ bool AtkMs901m::Init()
     // /* 获取ATK-MS901M加速度计满量程 */
     ReadRegById(ATK_MS901M_FRAME_ID_REG_ACCFSR);
 
-    SetPortMode(ATK_MS901M_PORT_D0, ATK_MS901M_PORT_MODE_OUTPUT_PWM);
+    SetPortMode(ATK_MS901M_PORT_D0, ATK_MS901M_PORT_MODE_ANALOG_INPUT);
     SetPortMode(ATK_MS901M_PORT_D1, ATK_MS901M_PORT_MODE_OUTPUT_PWM);
-    SetPortMode(ATK_MS901M_PORT_D2, ATK_MS901M_PORT_MODE_OUTPUT_PWM);
+    SetPortMode(ATK_MS901M_PORT_D2, ATK_MS901M_PORT_MODE_ANALOG_INPUT);
     SetPortMode(ATK_MS901M_PORT_D3, ATK_MS901M_PORT_MODE_OUTPUT_PWM);
-    SetPortPwmPulse(ATK_MS901M_PORT_D0, 1000);
-    SetPortPwmPeriod(ATK_MS901M_PORT_D0, 20000);
     SetPortPwmPulse(ATK_MS901M_PORT_D1, 1000);
     SetPortPwmPeriod(ATK_MS901M_PORT_D1, 20000);
-    SetPortPwmPulse(ATK_MS901M_PORT_D2, 1000);
-    SetPortPwmPeriod(ATK_MS901M_PORT_D2, 20000);
     SetPortPwmPulse(ATK_MS901M_PORT_D3, 1000);
     SetPortPwmPeriod(ATK_MS901M_PORT_D3, 20000);
     imu_thread_ = std::thread([](AtkMs901m *p_this) { p_this->ImuReader(); }, this);
@@ -126,7 +122,6 @@ void AtkMs901m::ImuReader()
 #endif
                 break;
             } else {
-                atk_ms901m_frame_t imu_frame;
                 // 重置指针位置指向包头位置和更新长度
 
                 uint8_t lenght = atk_ms901m_buffer_.size - index;
@@ -138,15 +133,15 @@ void AtkMs901m::ImuReader()
                     break;
                 }
 
-                imu_frame           = *res_tmp;
-                imu_frame.check_sum = res_tmp->dat[res_tmp->len];
+                imu_frame_           = *res_tmp;
+                imu_frame_.check_sum = res_tmp->dat[res_tmp->len];
 
-                uint8_t sum = imu_frame.head_l + imu_frame.head_h + imu_frame.id + imu_frame.len;
-                for (uint32_t i = 0; i < imu_frame.len; i++) {
-                    sum += imu_frame.dat[i];
+                uint8_t sum = imu_frame_.head_l + imu_frame_.head_h + imu_frame_.id + imu_frame_.len;
+                for (uint32_t i = 0; i < imu_frame_.len; i++) {
+                    sum += imu_frame_.dat[i];
                 }
-                if (sum == imu_frame.check_sum) {
-                    uint32_t buf_len = imu_frame.len + 5;
+                if (sum == imu_frame_.check_sum) {
+                    uint32_t buf_len = imu_frame_.len + 5;
                     // RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "buffer = %s", Bytes2String(ros_rx_buffer_ptr, buf_len).c_str());
                     atk_ms901m_buffer_.size -= buf_len;
                     std::unique_ptr<uint8_t[]> buffer(new uint8_t[atk_ms901m_buffer_.size]);
@@ -159,69 +154,69 @@ void AtkMs901m::ImuReader()
                     continue;
                 }
 
-                if (imu_frame.head_h == ATK_MS901M_FRAME_HEAD_UPLOAD_H) {
+                if (imu_frame_.head_h == ATK_MS901M_FRAME_HEAD_UPLOAD_H) {
                     std::lock_guard<std::mutex> mylock_guard(data_lock_);
-                    switch (imu_frame.id) {
+                    switch (imu_frame_.id) {
                     case ATK_MS901M_FRAME_ID_ATTITUDE /* 姿态角 */: {
-                        imu_data_.eular.roll  = *(int16_t *)(imu_frame.dat) / 32768.0 * M_PI;
-                        imu_data_.eular.pitch = *(int16_t *)(imu_frame.dat + 2) / 32768.0 * M_PI;
-                        imu_data_.eular.yaw   = *(int16_t *)(imu_frame.dat + 4) / 32768.0 * M_PI;
+                        imu_data_.eular.roll  = *(int16_t *)(imu_frame_.dat) / 32768.0 * M_PI;
+                        imu_data_.eular.pitch = *(int16_t *)(imu_frame_.dat + 2) / 32768.0 * M_PI;
+                        imu_data_.eular.yaw   = *(int16_t *)(imu_frame_.dat + 4) / 32768.0 * M_PI;
                         // RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "roll = %lf  pitch = %lf yaw = %lf", imu_data_.eular.roll, imu_data_.eular.pitch, imu_data_.eular.yaw);
                     } break;
 
                     case ATK_MS901M_FRAME_ID_QUAT /* 四元数 */: {
-                        imu_data_.orientation.w = *(int16_t *)(imu_frame.dat) / 32768.0;
-                        imu_data_.orientation.x = *(int16_t *)(imu_frame.dat + 2) / 32768.0;
-                        imu_data_.orientation.y = *(int16_t *)(imu_frame.dat + 4) / 32768.0;
-                        imu_data_.orientation.z = *(int16_t *)(imu_frame.dat + 6) / 32768.0;
+                        imu_data_.orientation.w = *(int16_t *)(imu_frame_.dat) / 32768.0;
+                        imu_data_.orientation.x = *(int16_t *)(imu_frame_.dat + 2) / 32768.0;
+                        imu_data_.orientation.y = *(int16_t *)(imu_frame_.dat + 4) / 32768.0;
+                        imu_data_.orientation.z = *(int16_t *)(imu_frame_.dat + 6) / 32768.0;
                     } break;
 
                     case ATK_MS901M_FRAME_ID_GYRO_ACCE /* 陀螺仪，加速度计 */: {
-                        imu_data_.linear_acceleration.x = *(int16_t *)(imu_frame.dat) / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
-                        imu_data_.linear_acceleration.y = *(int16_t *)(imu_frame.dat + 2) / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
-                        imu_data_.linear_acceleration.z = *(int16_t *)(imu_frame.dat + 4) / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
-                        imu_data_.angular_velocity.x    = *(int16_t *)(imu_frame.dat + 6) / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] * M_PI / 180.0;
-                        imu_data_.angular_velocity.y    = *(int16_t *)(imu_frame.dat + 8) / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] * M_PI / 180.0;
-                        imu_data_.angular_velocity.z    = *(int16_t *)(imu_frame.dat + 10) / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] * M_PI / 180.0;
+                        imu_data_.linear_acceleration.x = *(int16_t *)(imu_frame_.dat) / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
+                        imu_data_.linear_acceleration.y = *(int16_t *)(imu_frame_.dat + 2) / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
+                        imu_data_.linear_acceleration.z = *(int16_t *)(imu_frame_.dat + 4) / 32768.0 * atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer] * 9.8;
+                        imu_data_.angular_velocity.x    = *(int16_t *)(imu_frame_.dat + 6) / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] * M_PI / 180.0;
+                        imu_data_.angular_velocity.y    = *(int16_t *)(imu_frame_.dat + 8) / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] * M_PI / 180.0;
+                        imu_data_.angular_velocity.z    = *(int16_t *)(imu_frame_.dat + 10) / 32768.0 * atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] * M_PI / 180.0;
                     } break;
 
                     case ATK_MS901M_FRAME_ID_MAG /* 磁力计 */: {
-                        magnetometer_.x =  *(int16_t *)(imu_frame.dat);
-                        magnetometer_.y =  *(int16_t *)(imu_frame.dat + 2);
-                        magnetometer_.z =  *(int16_t *)(imu_frame.dat + 4);
-                        magnetometer_.temperature = (float)(*(int16_t *)(imu_frame.dat + 6)) / 100.0;
+                        magnetometer_.x =  *(int16_t *)(imu_frame_.dat);
+                        magnetometer_.y =  *(int16_t *)(imu_frame_.dat + 2);
+                        magnetometer_.z =  *(int16_t *)(imu_frame_.dat + 4);
+                        magnetometer_.temperature = (float)(*(int16_t *)(imu_frame_.dat + 6)) / 100.0;
                     } break;
 
                     case ATK_MS901M_FRAME_ID_BARO /* 气压计 */: {
-                        barometer_.pressure = *(int32_t *)(imu_frame.dat);
-                        barometer_.altitude = *(int32_t *)(imu_frame.dat + 4);
-                        barometer_.temperature = (float)(*(int16_t *)(imu_frame.dat + 8)) / 100.0;
+                        barometer_.pressure = *(int32_t *)(imu_frame_.dat);
+                        barometer_.altitude = *(int32_t *)(imu_frame_.dat + 4);
+                        barometer_.temperature = (float)(*(int16_t *)(imu_frame_.dat + 8)) / 100.0;
                     } break;
 
                     case ATK_MS901M_FRAME_ID_PORT /* 端口 */: {
-                        port_dat_.d0 = *(uint16_t *)(imu_frame.dat);
-                        port_dat_.d1 = *(uint16_t *)(imu_frame.dat + 2);
-                        port_dat_.d2 = *(uint16_t *)(imu_frame.dat + 4);
-                        port_dat_.d3 = *(uint16_t *)(imu_frame.dat + 6);
+                        port_dat_.d0 = *(uint16_t *)(imu_frame_.dat);
+                        port_dat_.d1 = *(uint16_t *)(imu_frame_.dat + 2);
+                        port_dat_.d2 = *(uint16_t *)(imu_frame_.dat + 4);
+                        port_dat_.d3 = *(uint16_t *)(imu_frame_.dat + 6);
                     } break;
 
                     default:
                         break;
                     }
-                } else if (imu_frame.head_h == ATK_MS901M_FRAME_HEAD_ACK_H) {
-                    switch (imu_frame.id) {
+                } else if (imu_frame_.head_h == ATK_MS901M_FRAME_HEAD_ACK_H) {
+                    switch (imu_frame_.id) {
                     case ATK_MS901M_FRAME_ID_REG_SENSTA /* 读取传感器校准状态 */: {
-                        if (imu_frame.dat[0] & 0x01) {
+                        if (imu_frame_.dat[0] & 0x01) {
                             std::cout << "accelerometer cailbrated" << std::endl;
                         } else {
                             std::cout << "accelerometer not cailbrated" << std::endl;
                         }
-                        if (imu_frame.dat[0] & 0x02) {
+                        if (imu_frame_.dat[0] & 0x02) {
                             std::cout << "magnetometer cailbrated" << std::endl;
                         } else {
                             std::cout << "magnetometer not cailbrated" << std::endl;
                         }
-                        if (imu_frame.dat[0] & 0x04) {
+                        if (imu_frame_.dat[0] & 0x04) {
                             std::cout << "gyro cailbrated" << std::endl;
                         } else {
                             std::cout << "gyro not cailbrated" << std::endl;
@@ -229,25 +224,25 @@ void AtkMs901m::ImuReader()
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_GYROFSR /* 获取ATK-MS901M陀螺仪满量程 */: {
-                        if (imu_frame.dat[0] < 6) {
-                            atk_ms901m_fsr_.gyro = imu_frame.dat[0];
+                        if (imu_frame_.dat[0] < 6) {
+                            atk_ms901m_fsr_.gyro = imu_frame_.dat[0];
                             spdlog::info("full gyro = {}", atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro]);
                         } else {
-                            spdlog::info("get imu gyro fail {}", imu_frame.dat[0]);
+                            spdlog::info("get imu gyro fail {}", imu_frame_.dat[0]);
                         }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_ACCFSR /* 获取ATK-MS901M加速度计满量程 */: {
-                        if (imu_frame.dat[0] < 4) {
-                            atk_ms901m_fsr_.accelerometer = imu_frame.dat[0];
+                        if (imu_frame_.dat[0] < 4) {
+                            atk_ms901m_fsr_.accelerometer = imu_frame_.dat[0];
                             spdlog::info("full accelerometer = {}", atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer]);
                         } else {
-                            spdlog::error("get imu accelerometer fail {}s", imu_frame.dat[0]);
+                            spdlog::error("get imu accelerometer fail {}s", imu_frame_.dat[0]);
                         }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_GYROBW /* 设置陀螺仪带宽 */: {
-                        switch (imu_frame.dat[0])
+                        switch (imu_frame_.dat[0])
                         {
                         case 0x00:
                             std::cout << "gyro bitwidth = 176" << std::endl;
@@ -274,7 +269,7 @@ void AtkMs901m::ImuReader()
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_ACCBW /* 设置加速度计带宽 */: {
-                        switch (imu_frame.dat[0])
+                        switch (imu_frame_.dat[0])
                         {
                         case 0x00:
                             std::cout << "accelerometer bitwidth = 218" << std::endl;
@@ -301,7 +296,7 @@ void AtkMs901m::ImuReader()
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_BAUD /* 设置UART通讯波特率 */: {
-                        switch (imu_frame.dat[0])
+                        switch (imu_frame_.dat[0])
                         {
                         case 0x00:
                             std::cout << "uart baud rate = 921600" << std::endl;
@@ -343,37 +338,37 @@ void AtkMs901m::ImuReader()
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_RETURNSET /* 设置回传内容 */: {
-                        if (imu_frame.dat[0] & 0x01) {
+                        if (imu_frame_.dat[0] & 0x01) {
                             std::cout << "posture angle upload" << std::endl;
                         } else {
                             std::cout << "posture angle not upload" << std::endl;
                         }
-                        if (imu_frame.dat[0] & 0x02) {
+                        if (imu_frame_.dat[0] & 0x02) {
                             std::cout << "quadrany upload" << std::endl;
                         } else {
                             std::cout << "quadrany not upload" << std::endl;
                         }
-                        if (imu_frame.dat[0] & 0x04) {
+                        if (imu_frame_.dat[0] & 0x04) {
                             std::cout << "accelerometer upload" << std::endl;
                         } else {
                             std::cout << "accelerometer not upload" << std::endl;
                         }
-                        if (imu_frame.dat[0] & 0x08) {
+                        if (imu_frame_.dat[0] & 0x08) {
                             std::cout << "magnetometer upload" << std::endl;
                         } else {
                             std::cout << "magnetometer not upload" << std::endl;
                         }
-                        if (imu_frame.dat[0] & 0x10) {
+                        if (imu_frame_.dat[0] & 0x10) {
                             std::cout << "barometer upload" << std::endl;
                         } else {
                             std::cout << "barometer not upload" << std::endl;
                         }
-                        if (imu_frame.dat[0] & 0x20) {
+                        if (imu_frame_.dat[0] & 0x20) {
                             std::cout << "port data upload" << std::endl;
                         } else {
                             std::cout << "port data not upload" << std::endl;
                         }
-                        if (imu_frame.dat[0] & 0x40) {
+                        if (imu_frame_.dat[0] & 0x40) {
                             std::cout << "upper computer data upload" << std::endl;
                         } else {
                             std::cout << "upper computer data not upload" << std::endl;
@@ -381,7 +376,7 @@ void AtkMs901m::ImuReader()
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_RETURNRATE /* 设置回传速率 */: {
-                        switch (imu_frame.dat[0])
+                        switch (imu_frame_.dat[0])
                         {
                         case 0x00:
                             std::cout << "return rate = 250Hz" << std::endl;
@@ -420,49 +415,191 @@ void AtkMs901m::ImuReader()
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_ALG /* 设置算法 */: {
+                        switch (imu_frame_.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "imu601" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "imu901" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_ASM /* 设置安装方向 */: {
+                        switch (imu_frame_.dat[0])
+                        {
+                        case 0x00: // 水平安装
+                            std::cout << "horizontal installation" << std::endl;
+                            break;
+                        case 0x01: // 垂直安装
+                            std::cout << "vertical installation" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_GAUCAL /* 设置陀螺仪自校准开关 */: {
+                        switch (imu_frame_.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "enable gyro self-calibration after power on" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "disable gyro self-calibration after power on" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_BAUCAL /* 设置气压计自校准开关 */: {
+                        switch (imu_frame_.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "enable barometer self-calibration after power on" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "disable barometer self-calibration after power on" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_LEDOFF /* 设置LED开关 */: {
+                        switch (imu_frame_.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "enable led" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "disable led" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_D0MODE /* 设置端口D0模式 */: {
+                        switch (imu_frame_.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "port 0 analog input" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "port 0 digital input" << std::endl;
+                            break;
+                        case 0x02:
+                            std::cout << "port 0 digital output high" << std::endl;
+                            break;
+                        case 0x03:
+                            std::cout << "port 0 digital output low" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_D1MODE /* 设置端口D1模式 */: {
+                        switch (imu_frame_.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "port 1 analog input" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "port 1 digital input" << std::endl;
+                            break;
+                        case 0x02:
+                            std::cout << "port 1 digital output high" << std::endl;
+                            break;
+                        case 0x03:
+                            std::cout << "port 1 digital output low" << std::endl;
+                            break;
+                        case 0x04:
+                            std::cout << "port 1 pwm output" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_D2MODE /* 设置端口D2模式 */: {
+                        switch (imu_frame_.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "port 2 analog input" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "port 2 digital input" << std::endl;
+                            break;
+                        case 0x02:
+                            std::cout << "port 2 digital output high" << std::endl;
+                            break;
+                        case 0x03:
+                            std::cout << "port 2 digital output low" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_D3MODE /* 设置端口D3模式 */: {
+                        switch (imu_frame_.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "port 3 analog input" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "port 3 digital input" << std::endl;
+                            break;
+                        case 0x02:
+                            std::cout << "port 3 digital output high" << std::endl;
+                            break;
+                        case 0x03:
+                            std::cout << "port 3 digital output low" << std::endl;
+                            break;
+                        case 0x04:
+                            std::cout << "port 3 pwm output" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_D1PULSE /* 设置端口D1 PWM高电平脉宽 */: {
+                        port1_pulse_ = *(uint16_t *)(imu_frame_.dat);
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_D3PULSE /* 设置端口D3 PWM高电平脉宽 */: {
+                        port3_pulse_ = *(uint16_t *)(imu_frame_.dat);
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_D1PERIOD /* 设置端口D1 PWM周期 */: {
+                        port1_period_ = *(uint16_t *)(imu_frame_.dat);
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_D3PERIOD /* 设置端口D3 PWM周期 */: {
+                        port3_period_ = *(uint16_t *)(imu_frame_.dat);
                     } break;
 
                     default:
                         break;
                     }
                 } else {
-                    spdlog::warn("unknow head = {:02x}{:02x}", imu_frame.head_l, imu_frame.head_h);
+                    spdlog::warn("unknow head = {:02x}{:02x}", imu_frame_.head_l, imu_frame_.head_h);
                 }
             }
         }
@@ -511,68 +648,19 @@ atk_ms901m_frame_t *AtkMs901m::SearchHearLE(uint8_t *data, uint32_t total_len, u
  */
 uint8_t AtkMs901m::GetFrameById(atk_ms901m_frame_t *frame, uint8_t id, uint8_t id_type, uint32_t timeout)
 {
-    if (timeout == 0) {
-        return ATK_MS901M_ETIMEOUT;
-    }
-    int len = serial_comm_->ReadBuffer(atk_ms901m_buffer_.rx_buffer + atk_ms901m_buffer_.size, sizeof(atk_ms901m_buffer_.rx_buffer) - atk_ms901m_buffer_.size);
-    if (len < 1) {
-        // 没有有效数据直接返回
-        return ATK_MS901M_ETIMEOUT;
-    }
-    atk_ms901m_buffer_.size += len; // 更新buff长度
-    if (atk_ms901m_buffer_.size < sizeof(atk_ms901m_frame_t)) {
-        return ATK_MS901M_ETIMEOUT;
-    }
-    uint8_t *ros_rx_buffer_ptr = atk_ms901m_buffer_.rx_buffer;
-
-#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
-    while (ros::ok())
-#else
-    while (rclcpp::ok())
-#endif
-    {
-        uint32_t index              = 0;
-        atk_ms901m_frame_t *res_tmp = SearchHearLE(ros_rx_buffer_ptr, atk_ms901m_buffer_.size, index);
-        if (res_tmp == nullptr) {
-            // 已经处理完所有可识别的包
-            return ATK_MS901M_EOK;
-        } else {
-            // 重置指针位置指向包头位置和更新长度
-            if (index) {
-                ros_rx_buffer_ptr += index;
-                atk_ms901m_buffer_.size -= index;
-            }
-        }
-
-        if (res_tmp->id == id) {
-            std::lock_guard<std::mutex> mylock_guard(data_lock_);
-            uint8_t sum = res_tmp->head_l + res_tmp->head_h + res_tmp->id + res_tmp->len;
-            for (uint32_t i = 0; i < res_tmp->len; i++) {
-                sum += res_tmp->dat[i];
-            }
-            if (sum == res_tmp->check_sum) {
-                memcpy(frame, res_tmp, res_tmp->len + 5);
-                atk_ms901m_buffer_.size -= res_tmp->len + 5;
-                std::unique_ptr<uint8_t[]> buffer(new uint8_t[atk_ms901m_buffer_.size]);
-                // 剩余未处理数据拷贝到临时变量
-                memcpy(buffer.get(), ros_rx_buffer_ptr + res_tmp->len + 5, atk_ms901m_buffer_.size);
-                // 覆盖掉原来的buff
-                memcpy(atk_ms901m_buffer_.rx_buffer, buffer.get(), atk_ms901m_buffer_.size);
-
-            } else {
-                continue;
-            }
-
+    std::lock_guard<std::mutex> mylock_guard(data_lock_);
+    for (uint32_t i = 0; i < timeout; i++) {
+        frame = &imu_frame_;
+        if (frame->id == id) {
             if (id_type == ATK_MS901M_FRAME_ID_TYPE_UPLOAD) {
-                return ATK_MS901M_EOK;
+                break;
             } else if (id_type == ATK_MS901M_FRAME_ID_TYPE_ACK) {
-                return ATK_MS901M_EOK;
+                break;
             } else {
                 return ATK_MS901M_EINVAL;
             }
-        } else {
-            continue;
         }
+        usleep(1000);
     }
     return ATK_MS901M_EOK;
 }
@@ -759,22 +847,12 @@ uint8_t AtkMs901m::GetLedState(atk_ms901m_led_state_t *state, uint32_t timeout)
  * @retval      ATK_MS901M_EOK  : 设置ATK-MS901M LED灯状态成功
  *              ATK_MS901M_ERROR: 设置ATK-MS901M LED灯状态失败
  */
-uint8_t AtkMs901m::SetLedState(atk_ms901m_led_state_t state, uint32_t timeout)
+uint8_t AtkMs901m::SetLedState(atk_ms901m_led_state_t state)
 {
     uint8_t ret;
-    atk_ms901m_led_state_t state_recv;
 
     ret = WriteRegById(ATK_MS901M_FRAME_ID_REG_LEDOFF, 1, (uint8_t *)&state);
     if (ret != ATK_MS901M_EOK) {
-        return ATK_MS901M_ERROR;
-    }
-
-    ret = GetLedState(&state_recv, timeout);
-    if (ret != ATK_MS901M_EOK) {
-        return ATK_MS901M_ERROR;
-    }
-
-    if (state_recv != state) {
         return ATK_MS901M_ERROR;
     }
 
@@ -826,7 +904,6 @@ uint8_t AtkMs901m::SetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t mo
 {
     uint8_t ret;
     uint8_t id;
-    atk_ms901m_port_mode_t mode_recv;
 
     if (port == ATK_MS901M_PORT_D0) {
         if (mode == ATK_MS901M_PORT_MODE_OUTPUT_PWM) {
@@ -850,15 +927,6 @@ uint8_t AtkMs901m::SetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t mo
     if (ret != ATK_MS901M_EOK) {
         return ATK_MS901M_ERROR;
     }
-
-    // ret = GetPortMode(port, &mode_recv, timeout);
-    // if (ret != ATK_MS901M_EOK) {
-    //     return ATK_MS901M_ERROR;
-    // } else {
-    //     if (mode_recv != mode) {
-    //         return ATK_MS901M_ERROR;
-    //     }
-    // }
 
     return ATK_MS901M_EOK;
 }
@@ -908,7 +976,6 @@ uint8_t AtkMs901m::SetPortPwmPulse(atk_ms901m_port_t port, uint16_t pulse)
 {
     uint8_t ret;
     uint8_t id;
-    uint16_t pulse_recv;
 
     if (port == ATK_MS901M_PORT_D0) {
         return ATK_MS901M_ERROR;
@@ -926,15 +993,6 @@ uint8_t AtkMs901m::SetPortPwmPulse(atk_ms901m_port_t port, uint16_t pulse)
     if (ret != ATK_MS901M_EOK) {
         return ATK_MS901M_ERROR;
     }
-
-    // ret = GetPortPwmPulse(port, &pulse_recv, timeout);
-    // if (ret != ATK_MS901M_EOK) {
-    //     return ATK_MS901M_ERROR;
-    // }
-
-    // if (pulse_recv != pulse) {
-    //     return ATK_MS901M_ERROR;
-    // }
 
     return ATK_MS901M_EOK;
 }
@@ -984,7 +1042,6 @@ uint8_t AtkMs901m::SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period)
 {
     uint8_t ret;
     uint8_t id;
-    uint16_t period_recv;
 
     if (port == ATK_MS901M_PORT_D0) {
         return ATK_MS901M_ERROR;
@@ -1002,15 +1059,6 @@ uint8_t AtkMs901m::SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period)
     if (ret != ATK_MS901M_EOK) {
         return ATK_MS901M_ERROR;
     }
-
-    // ret = GetPortPwmPeriod(port, &period_recv, timeout);
-    // if (ret != ATK_MS901M_EOK) {
-    //     return ATK_MS901M_ERROR;
-    // }
-
-    // if (period_recv != period) {
-    //     return ATK_MS901M_ERROR;
-    // }
 
     return ATK_MS901M_EOK;
 }
