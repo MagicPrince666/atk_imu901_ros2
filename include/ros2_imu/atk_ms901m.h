@@ -255,6 +255,8 @@ private:
     uint8_t GetPort(atk_ms901m_port_data_t *port_dat, uint32_t timeout);                         /* 获取ATK-MS901M端口数据 */
     uint8_t GetLedState(atk_ms901m_led_state_t *state, uint32_t timeout);                        /* 获取ATK-MS901M LED灯状态 */
     uint8_t SetLedState(atk_ms901m_led_state_t state);                         /* 设置ATK-MS901M LED灯状态 */
+    // uint8_t GetUartBaudrate(atk_ms901m_led_state_t *state, uint32_t timeout);                        /* 获取ATK-MS901M LED灯状态 */
+    // uint8_t SetUartBaudrate(atk_ms901m_led_state_t state);                         /* 设置ATK-MS901M LED灯状态 */
     uint8_t GetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t *mode, uint32_t timeout); /* 获取ATK-MS901M指定端口模式 */
     uint8_t SetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t mode);  /* 设置ATK-MS901M指定端口模式 */
     uint8_t GetPortPwmPulse(atk_ms901m_port_t port, uint16_t *pulse, uint32_t timeout);          /* 获取ATK-MS901M指定端口PWM高电平的宽度 */

@@ -54,9 +54,16 @@ bool AtkMs901m::Init()
 {
     // /* 获取ATK-MS901M陀螺仪满量程 */
     ReadRegById(ATK_MS901M_FRAME_ID_REG_GYROFSR);
-
     // /* 获取ATK-MS901M加速度计满量程 */
     ReadRegById(ATK_MS901M_FRAME_ID_REG_ACCFSR);
+    // 获取回传率
+    ReadRegById(ATK_MS901M_FRAME_ID_REG_RETURNRATE);
+    // 获取陀螺仪带宽
+    ReadRegById(ATK_MS901M_FRAME_ID_REG_GYROBW);
+    // 获取加速度计带宽
+    ReadRegById(ATK_MS901M_FRAME_ID_REG_ACCBW);
+    // 获取UART通讯波特率
+    ReadRegById(ATK_MS901M_FRAME_ID_REG_BAUD);
 
     SetPortMode(ATK_MS901M_PORT_D0, ATK_MS901M_PORT_MODE_ANALOG_INPUT);
     SetPortMode(ATK_MS901M_PORT_D1, ATK_MS901M_PORT_MODE_OUTPUT_PWM);
