@@ -248,11 +248,11 @@ private:
     uint8_t GetLedState(atk_ms901m_led_state_t *state, uint32_t timeout);                        /* 获取ATK-MS901M LED灯状态 */
     uint8_t SetLedState(atk_ms901m_led_state_t state, uint32_t timeout);                         /* 设置ATK-MS901M LED灯状态 */
     uint8_t GetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t *mode, uint32_t timeout); /* 获取ATK-MS901M指定端口模式 */
-    uint8_t SetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t mode, uint32_t timeout);  /* 设置ATK-MS901M指定端口模式 */
+    uint8_t SetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t mode);  /* 设置ATK-MS901M指定端口模式 */
     uint8_t GetPortPwmPulse(atk_ms901m_port_t port, uint16_t *pulse, uint32_t timeout);          /* 获取ATK-MS901M指定端口PWM高电平的宽度 */
-    uint8_t SetPortPwmPulse(atk_ms901m_port_t port, uint16_t pulse, uint32_t timeout);           /* 设置ATK-MS901M指定端口PWM高电平的宽度 */
+    uint8_t SetPortPwmPulse(atk_ms901m_port_t port, uint16_t pulse);           /* 设置ATK-MS901M指定端口PWM高电平的宽度 */
     uint8_t GetPortPwmPeriod(atk_ms901m_port_t port, uint16_t *period, uint32_t timeout);        /* 获取ATK-MS901M指定端口PWM周期 */
-    uint8_t SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period, uint32_t timeout);         /* 设置ATK-MS901M指定端口PWM周期 */
+    uint8_t SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period);         /* 设置ATK-MS901M指定端口PWM周期 */
     /**
      * @brief 小端系统协议头查找算法
      * @param data 包起始指针

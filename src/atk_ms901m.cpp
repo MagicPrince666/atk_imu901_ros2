@@ -27,8 +27,8 @@
 
 #include <cmath>
 #include <cstring>
-#include <unistd.h>
 #include <spdlog/spdlog.h>
+#include <unistd.h>
 
 AtkMs901m::AtkMs901m(ImuConf conf)
     : ImuInterface(conf)
@@ -53,19 +53,23 @@ AtkMs901m::~AtkMs901m()
 bool AtkMs901m::Init()
 {
     // /* 获取ATK-MS901M陀螺仪满量程 */
-    // uint8_t ret = ReadRegById(ATK_MS901M_FRAME_ID_REG_GYROFSR, &atk_ms901m_fsr_.gyro, 100);
-    // if (ret == 0) {
-    //     return false;
-    // }
+    ReadRegById(ATK_MS901M_FRAME_ID_REG_GYROFSR);
 
     // /* 获取ATK-MS901M加速度计满量程 */
-    // ret = ReadRegById(ATK_MS901M_FRAME_ID_REG_ACCFSR, &atk_ms901m_fsr_.accelerometer, 100);
-    // if (ret == 0) {
-    //     return false;
-    // }
-
-    ReadRegById(ATK_MS901M_FRAME_ID_REG_GYROFSR);
     ReadRegById(ATK_MS901M_FRAME_ID_REG_ACCFSR);
+
+    SetPortMode(ATK_MS901M_PORT_D0, ATK_MS901M_PORT_MODE_OUTPUT_PWM);
+    SetPortMode(ATK_MS901M_PORT_D1, ATK_MS901M_PORT_MODE_OUTPUT_PWM);
+    SetPortMode(ATK_MS901M_PORT_D2, ATK_MS901M_PORT_MODE_OUTPUT_PWM);
+    SetPortMode(ATK_MS901M_PORT_D3, ATK_MS901M_PORT_MODE_OUTPUT_PWM);
+    SetPortPwmPulse(ATK_MS901M_PORT_D0, 1000);
+    SetPortPwmPeriod(ATK_MS901M_PORT_D0, 20000);
+    SetPortPwmPulse(ATK_MS901M_PORT_D1, 1000);
+    SetPortPwmPeriod(ATK_MS901M_PORT_D1, 20000);
+    SetPortPwmPulse(ATK_MS901M_PORT_D2, 1000);
+    SetPortPwmPeriod(ATK_MS901M_PORT_D2, 20000);
+    SetPortPwmPulse(ATK_MS901M_PORT_D3, 1000);
+    SetPortPwmPeriod(ATK_MS901M_PORT_D3, 20000);
     imu_thread_ = std::thread([](AtkMs901m *p_this) { p_this->ImuReader(); }, this);
 
     return true;
@@ -105,7 +109,7 @@ void AtkMs901m::ImuReader()
     while (ros::ok())
 #else
     while (rclcpp::ok())
-#endif 
+#endif
     {
         std::unique_lock<std::mutex> lck(g_mtx_);
         g_cv_.wait_for(lck, std::chrono::milliseconds(100));
@@ -134,7 +138,7 @@ void AtkMs901m::ImuReader()
                     break;
                 }
 
-                imu_frame = *res_tmp;
+                imu_frame           = *res_tmp;
                 imu_frame.check_sum = res_tmp->dat[res_tmp->len];
 
                 uint8_t sum = imu_frame.head_l + imu_frame.head_h + imu_frame.id + imu_frame.len;
@@ -634,7 +638,7 @@ uint8_t AtkMs901m::GetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t *m
  * @retval      ATK_MS901M_EOK  : 设置ATK-MS901M指定端口模式成功
  *              ATK_MS901M_ERROR: 设置ATK-MS901M指定端口模式失败
  */
-uint8_t AtkMs901m::SetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t mode, uint32_t timeout)
+uint8_t AtkMs901m::SetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t mode)
 {
     uint8_t ret;
     uint8_t id;
@@ -663,14 +667,14 @@ uint8_t AtkMs901m::SetPortMode(atk_ms901m_port_t port, atk_ms901m_port_mode_t mo
         return ATK_MS901M_ERROR;
     }
 
-    ret = GetPortMode(port, &mode_recv, timeout);
-    if (ret != ATK_MS901M_EOK) {
-        return ATK_MS901M_ERROR;
-    } else {
-        if (mode_recv != mode) {
-            return ATK_MS901M_ERROR;
-        }
-    }
+    // ret = GetPortMode(port, &mode_recv, timeout);
+    // if (ret != ATK_MS901M_EOK) {
+    //     return ATK_MS901M_ERROR;
+    // } else {
+    //     if (mode_recv != mode) {
+    //         return ATK_MS901M_ERROR;
+    //     }
+    // }
 
     return ATK_MS901M_EOK;
 }
@@ -716,7 +720,7 @@ uint8_t AtkMs901m::GetPortPwmPulse(atk_ms901m_port_t port, uint16_t *pulse, uint
  * @retval      ATK_MS901M_EOK  : 设置ATK-MS901M指定端口PWM高电平的宽度成功
  *              ATK_MS901M_ERROR: 设置ATK-MS901M指定端口PWM高电平的宽度失败
  */
-uint8_t AtkMs901m::SetPortPwmPulse(atk_ms901m_port_t port, uint16_t pulse, uint32_t timeout)
+uint8_t AtkMs901m::SetPortPwmPulse(atk_ms901m_port_t port, uint16_t pulse)
 {
     uint8_t ret;
     uint8_t id;
@@ -739,14 +743,14 @@ uint8_t AtkMs901m::SetPortPwmPulse(atk_ms901m_port_t port, uint16_t pulse, uint3
         return ATK_MS901M_ERROR;
     }
 
-    ret = GetPortPwmPulse(port, &pulse_recv, timeout);
-    if (ret != ATK_MS901M_EOK) {
-        return ATK_MS901M_ERROR;
-    }
+    // ret = GetPortPwmPulse(port, &pulse_recv, timeout);
+    // if (ret != ATK_MS901M_EOK) {
+    //     return ATK_MS901M_ERROR;
+    // }
 
-    if (pulse_recv != pulse) {
-        return ATK_MS901M_ERROR;
-    }
+    // if (pulse_recv != pulse) {
+    //     return ATK_MS901M_ERROR;
+    // }
 
     return ATK_MS901M_EOK;
 }
@@ -792,7 +796,7 @@ uint8_t AtkMs901m::GetPortPwmPeriod(atk_ms901m_port_t port, uint16_t *period, ui
  * @retval      ATK_MS901M_EOK  : 设置ATK-MS901M指定端口PWM周期成功
  *              ATK_MS901M_ERROR: 设置ATK-MS901M指定端口PWM周期失败
  */
-uint8_t AtkMs901m::SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period, uint32_t timeout)
+uint8_t AtkMs901m::SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period)
 {
     uint8_t ret;
     uint8_t id;
@@ -815,14 +819,14 @@ uint8_t AtkMs901m::SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period, uin
         return ATK_MS901M_ERROR;
     }
 
-    ret = GetPortPwmPeriod(port, &period_recv, timeout);
-    if (ret != ATK_MS901M_EOK) {
-        return ATK_MS901M_ERROR;
-    }
+    // ret = GetPortPwmPeriod(port, &period_recv, timeout);
+    // if (ret != ATK_MS901M_EOK) {
+    //     return ATK_MS901M_ERROR;
+    // }
 
-    if (period_recv != period) {
-        return ATK_MS901M_ERROR;
-    }
+    // if (period_recv != period) {
+    //     return ATK_MS901M_ERROR;
+    // }
 
     return ATK_MS901M_EOK;
 }
