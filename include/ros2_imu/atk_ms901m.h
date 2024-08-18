@@ -234,6 +234,9 @@ private:
     std::mutex data_lock_;
     std::thread imu_thread_;
     Imu imu_data_;
+    atk_ms901m_magnetometer_data_t magnetometer_;
+    atk_ms901m_barometer_data_t barometer_;
+    atk_ms901m_port_data_t port_dat_;
 
     std::condition_variable g_cv_; // 全局条件变量
     std::mutex g_mtx_;             // 全局互斥锁.

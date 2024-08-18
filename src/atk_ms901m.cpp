@@ -186,12 +186,23 @@ void AtkMs901m::ImuReader()
                     } break;
 
                     case ATK_MS901M_FRAME_ID_MAG /* 磁力计 */: {
+                        magnetometer_.x =  *(int16_t *)(imu_frame.dat);
+                        magnetometer_.y =  *(int16_t *)(imu_frame.dat + 2);
+                        magnetometer_.z =  *(int16_t *)(imu_frame.dat + 4);
+                        magnetometer_.temperature = (float)(*(int16_t *)(imu_frame.dat + 6)) / 100.0;
                     } break;
 
                     case ATK_MS901M_FRAME_ID_BARO /* 气压计 */: {
+                        barometer_.pressure = *(int32_t *)(imu_frame.dat);
+                        barometer_.altitude = *(int32_t *)(imu_frame.dat + 4);
+                        barometer_.temperature = (float)(*(int16_t *)(imu_frame.dat + 8)) / 100.0;
                     } break;
 
                     case ATK_MS901M_FRAME_ID_PORT /* 端口 */: {
+                        port_dat_.d0 = *(uint16_t *)(imu_frame.dat);
+                        port_dat_.d1 = *(uint16_t *)(imu_frame.dat + 2);
+                        port_dat_.d2 = *(uint16_t *)(imu_frame.dat + 4);
+                        port_dat_.d3 = *(uint16_t *)(imu_frame.dat + 6);
                     } break;
 
                     default:
@@ -200,6 +211,21 @@ void AtkMs901m::ImuReader()
                 } else if (imu_frame.head_h == ATK_MS901M_FRAME_HEAD_ACK_H) {
                     switch (imu_frame.id) {
                     case ATK_MS901M_FRAME_ID_REG_SENSTA /* 读取传感器校准状态 */: {
+                        if (imu_frame.dat[0] & 0x01) {
+                            std::cout << "accelerometer cailbrated" << std::endl;
+                        } else {
+                            std::cout << "accelerometer not cailbrated" << std::endl;
+                        }
+                        if (imu_frame.dat[0] & 0x02) {
+                            std::cout << "magnetometer cailbrated" << std::endl;
+                        } else {
+                            std::cout << "magnetometer not cailbrated" << std::endl;
+                        }
+                        if (imu_frame.dat[0] & 0x04) {
+                            std::cout << "gyro cailbrated" << std::endl;
+                        } else {
+                            std::cout << "gyro not cailbrated" << std::endl;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_GYROFSR /* 获取ATK-MS901M陀螺仪满量程 */: {
@@ -221,18 +247,176 @@ void AtkMs901m::ImuReader()
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_GYROBW /* 设置陀螺仪带宽 */: {
+                        switch (imu_frame.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "gyro bitwidth = 176" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "gyro bitwidth = 92" << std::endl;
+                            break;
+                        case 0x02:
+                            std::cout << "gyro bitwidth = 41" << std::endl;
+                            break;
+                        case 0x03:
+                            std::cout << "gyro bitwidth = 20" << std::endl;
+                            break;
+                        case 0x04:
+                            std::cout << "gyro bitwidth = 10" << std::endl;
+                            break;
+                        case 0x05:
+                            std::cout << "gyro bitwidth = 5" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_ACCBW /* 设置加速度计带宽 */: {
+                        switch (imu_frame.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "accelerometer bitwidth = 218" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "accelerometer bitwidth = 99" << std::endl;
+                            break;
+                        case 0x02:
+                            std::cout << "accelerometer bitwidth = 45" << std::endl;
+                            break;
+                        case 0x03:
+                            std::cout << "accelerometer bitwidth = 21" << std::endl;
+                            break;
+                        case 0x04:
+                            std::cout << "accelerometer bitwidth = 10" << std::endl;
+                            break;
+                        case 0x05:
+                            std::cout << "accelerometer bitwidth = 5" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_BAUD /* 设置UART通讯波特率 */: {
+                        switch (imu_frame.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "uart baud rate = 921600" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "uart baud rate = 460800" << std::endl;
+                            break;
+                        case 0x02:
+                            std::cout << "uart baud rate = 256000" << std::endl;
+                            break;
+                        case 0x03:
+                            std::cout << "uart baud rate = 230400" << std::endl;
+                            break;
+                        case 0x04:
+                            std::cout << "uart baud rate = 115200" << std::endl;
+                            break;
+                        case 0x05:
+                            std::cout << "uart baud rate = 57600" << std::endl;
+                            break;
+                        case 0x06:
+                            std::cout << "uart baud rate = 38400" << std::endl;
+                            break;
+                        case 0x07:
+                            std::cout << "uart baud rate = 19200" << std::endl;
+                            break;
+                        case 0x08:
+                            std::cout << "uart baud rate = 9600" << std::endl;
+                            break;
+                        case 0x09:
+                            std::cout << "uart baud rate = 4800" << std::endl;
+                            break;
+                        case 0x0A:
+                            std::cout << "uart baud rate = 2400" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_RETURNSET /* 设置回传内容 */: {
+                        if (imu_frame.dat[0] & 0x01) {
+                            std::cout << "posture angle upload" << std::endl;
+                        } else {
+                            std::cout << "posture angle not upload" << std::endl;
+                        }
+                        if (imu_frame.dat[0] & 0x02) {
+                            std::cout << "quadrany upload" << std::endl;
+                        } else {
+                            std::cout << "quadrany not upload" << std::endl;
+                        }
+                        if (imu_frame.dat[0] & 0x04) {
+                            std::cout << "accelerometer upload" << std::endl;
+                        } else {
+                            std::cout << "accelerometer not upload" << std::endl;
+                        }
+                        if (imu_frame.dat[0] & 0x08) {
+                            std::cout << "magnetometer upload" << std::endl;
+                        } else {
+                            std::cout << "magnetometer not upload" << std::endl;
+                        }
+                        if (imu_frame.dat[0] & 0x10) {
+                            std::cout << "barometer upload" << std::endl;
+                        } else {
+                            std::cout << "barometer not upload" << std::endl;
+                        }
+                        if (imu_frame.dat[0] & 0x20) {
+                            std::cout << "port data upload" << std::endl;
+                        } else {
+                            std::cout << "port data not upload" << std::endl;
+                        }
+                        if (imu_frame.dat[0] & 0x40) {
+                            std::cout << "upper computer data upload" << std::endl;
+                        } else {
+                            std::cout << "upper computer data not upload" << std::endl;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_RETURNRATE /* 设置回传速率 */: {
+                        switch (imu_frame.dat[0])
+                        {
+                        case 0x00:
+                            std::cout << "return rate = 250Hz" << std::endl;
+                            break;
+                        case 0x01:
+                            std::cout << "return rate = 200Hz" << std::endl;
+                            break;
+                        case 0x02:
+                            std::cout << "return rate = 125Hz" << std::endl;
+                            break;
+                        case 0x03:
+                            std::cout << "return rate = 100Hz" << std::endl;
+                            break;
+                        case 0x04:
+                            std::cout << "return rate = 50Hz" << std::endl;
+                            break;
+                        case 0x05:
+                            std::cout << "return rate = 20Hz" << std::endl;
+                            break;
+                        case 0x06:
+                            std::cout << "return rate = 10Hz" << std::endl;
+                            break;
+                        case 0x07:
+                            std::cout << "return rate = 5Hz" << std::endl;
+                            break;
+                        case 0x08:
+                            std::cout << "return rate = 2Hz" << std::endl;
+                            break;
+                        case 0x09:
+                            std::cout << "return rate = 1Hz" << std::endl;
+                            break;
+                        
+                        default:
+                            break;
+                        }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_ALG /* 设置算法 */: {
