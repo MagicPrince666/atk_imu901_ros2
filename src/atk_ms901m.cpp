@@ -95,7 +95,7 @@ std::string AtkMs901m::Bytes2String(uint8_t *data, uint32_t len)
 void AtkMs901m::ReadBuffer(const uint8_t *buffer, const int length)
 {
     std::unique_lock<std::mutex> lck(g_mtx_);
-    uint32_t buf_size = sizeof(atk_ms901m_buffer_.rx_buffer) - atk_ms901m_buffer_.size;
+    int32_t buf_size = sizeof(atk_ms901m_buffer_.rx_buffer) - atk_ms901m_buffer_.size;
     if (buf_size >= length) {
         memcpy(atk_ms901m_buffer_.rx_buffer + atk_ms901m_buffer_.size, buffer, length);
         atk_ms901m_buffer_.size += length; // 更新buff长度
