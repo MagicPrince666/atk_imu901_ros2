@@ -27,7 +27,8 @@
 
 #include <cmath>
 #include <cstring>
-#include <spdlog/spdlog.h>
+#include <functional>
+#include <iostream>
 #include <unistd.h>
 
 AtkMs901m::AtkMs901m(ImuConf conf)
@@ -52,6 +53,8 @@ AtkMs901m::~AtkMs901m()
 
 bool AtkMs901m::Init()
 {
+    // SetBaudRate(0x03); // 230400
+    // SaveToFlash();
     // /* 获取ATK-MS901M陀螺仪满量程 */
     ReadRegById(ATK_MS901M_FRAME_ID_REG_GYROFSR);
     // /* 获取ATK-MS901M加速度计满量程 */
@@ -83,7 +86,7 @@ std::string AtkMs901m::Bytes2String(uint8_t *data, uint32_t len)
     char temp[512];
     std::string str("");
     for (size_t i = 0; i < len; i++) {
-        sprintf(temp, "%02x ", data[i]);
+        snprintf(temp, sizeof(temp), "%02x ", data[i]);
         str.append(temp);
     }
     return str;
@@ -92,7 +95,7 @@ std::string AtkMs901m::Bytes2String(uint8_t *data, uint32_t len)
 void AtkMs901m::ReadBuffer(const uint8_t *buffer, const int length)
 {
     std::unique_lock<std::mutex> lck(g_mtx_);
-    int buf_size = sizeof(atk_ms901m_buffer_.rx_buffer) - atk_ms901m_buffer_.size;
+    uint32_t buf_size = sizeof(atk_ms901m_buffer_.rx_buffer) - atk_ms901m_buffer_.size;
     if (buf_size >= length) {
         memcpy(atk_ms901m_buffer_.rx_buffer + atk_ms901m_buffer_.size, buffer, length);
         atk_ms901m_buffer_.size += length; // 更新buff长度
@@ -101,8 +104,6 @@ void AtkMs901m::ReadBuffer(const uint8_t *buffer, const int length)
         atk_ms901m_buffer_.size += buf_size; // 更新buff长度
     }
     g_cv_.notify_all(); // 唤醒所有线程.
-
-    return;
 }
 
 void AtkMs901m::ImuReader()
@@ -122,11 +123,7 @@ void AtkMs901m::ImuReader()
             atk_ms901m_frame_t *res_tmp = SearchHearLE(ros_rx_buffer_ptr, atk_ms901m_buffer_.size, index);
             if (res_tmp == nullptr) {
                 // 已经处理完所有可识别的包
-#if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
-                ROS_WARN("not found buffer head size = %d", atk_ms901m_buffer_.size);
-#else
-                RCLCPP_WARN(rclcpp::get_logger(__FUNCTION__), "not found buffer head size = %d", atk_ms901m_buffer_.size);
-#endif
+                std::cerr << "not found buffer head size = " << atk_ms901m_buffer_.size << std::endl;
                 break;
             } else {
                 // 重置指针位置指向包头位置和更新长度
@@ -151,13 +148,13 @@ void AtkMs901m::ImuReader()
                     uint32_t buf_len = imu_frame_.len + 5;
                     // RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "buffer = %s", Bytes2String(ros_rx_buffer_ptr, buf_len).c_str());
                     atk_ms901m_buffer_.size -= buf_len;
-                    std::unique_ptr<uint8_t[]> buffer(new uint8_t[atk_ms901m_buffer_.size]);
+                    uint8_t buffer[sizeof(atk_ms901m_buffer_.rx_buffer)];
                     // 剩余未处理数据拷贝到临时变量
-                    memcpy(buffer.get(), ros_rx_buffer_ptr + buf_len, atk_ms901m_buffer_.size);
+                    memcpy(buffer, ros_rx_buffer_ptr + buf_len, atk_ms901m_buffer_.size);
                     // 覆盖掉原来的buff
-                    memcpy(atk_ms901m_buffer_.rx_buffer, buffer.get(), atk_ms901m_buffer_.size);
+                    memcpy(atk_ms901m_buffer_.rx_buffer, buffer, atk_ms901m_buffer_.size);
                 } else {
-                    spdlog::warn("Check sum fail");
+                    std::cerr << "Check sum fail" << std::endl;
                     continue;
                 }
 
@@ -233,18 +230,18 @@ void AtkMs901m::ImuReader()
                     case ATK_MS901M_FRAME_ID_REG_GYROFSR /* 获取ATK-MS901M陀螺仪满量程 */: {
                         if (imu_frame_.dat[0] < 6) {
                             atk_ms901m_fsr_.gyro = imu_frame_.dat[0];
-                            spdlog::info("full gyro = {}", atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro]);
+                            std::cout << "full gyro = " << atk_ms901m_gyro_fsr_table_[atk_ms901m_fsr_.gyro] << std::endl;
                         } else {
-                            spdlog::info("get imu gyro fail {}", imu_frame_.dat[0]);
+                            std::cerr << "get imu gyro fail" << imu_frame_.dat[0] << std::endl;
                         }
                     } break;
 
                     case ATK_MS901M_FRAME_ID_REG_ACCFSR /* 获取ATK-MS901M加速度计满量程 */: {
                         if (imu_frame_.dat[0] < 4) {
                             atk_ms901m_fsr_.accelerometer = imu_frame_.dat[0];
-                            spdlog::info("full accelerometer = {}", atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer]);
+                            std::cout << "full accelerometer = " << static_cast<uint32_t>(atk_ms901m_accelerometer_fsr_table_[atk_ms901m_fsr_.accelerometer]) << std::endl;
                         } else {
-                            spdlog::error("get imu accelerometer fail {}s", imu_frame_.dat[0]);
+                            std::cerr << "get imu accelerometer fail" << imu_frame_.dat[0] << std::endl;
                         }
                     } break;
 
@@ -606,7 +603,7 @@ void AtkMs901m::ImuReader()
                         break;
                     }
                 } else {
-                    spdlog::warn("unknow head = {:02x}{:02x}", imu_frame_.head_l, imu_frame_.head_h);
+                    std::cout << "unknow head = " << std::hex << imu_frame_.head_l << imu_frame_.head_h << std::endl;
                 }
             }
         }
@@ -1063,6 +1060,33 @@ uint8_t AtkMs901m::SetPortPwmPeriod(atk_ms901m_port_t port, uint16_t period)
     }
 
     ret = WriteRegById(id, 2, (uint8_t *)&period);
+    if (ret != ATK_MS901M_EOK) {
+        return ATK_MS901M_ERROR;
+    }
+
+    return ATK_MS901M_EOK;
+}
+
+uint8_t AtkMs901m::SetBaudRate(uint8_t rate)
+{
+    uint8_t ret;
+    uint8_t id = ATK_MS901M_FRAME_ID_REG_BAUD;
+
+    ret = WriteRegById(id, 1, (uint8_t *)&rate);
+    if (ret != ATK_MS901M_EOK) {
+        return ATK_MS901M_ERROR;
+    }
+
+    return ATK_MS901M_EOK;
+}
+
+uint8_t AtkMs901m::SaveToFlash()
+{
+    uint8_t ret;
+    uint8_t id = ATK_MS901M_FRAME_ID_REG_SAVE;
+    uint8_t cmd = 0x00;
+
+    ret = WriteRegById(id, 1, (uint8_t *)&cmd);
     if (ret != ATK_MS901M_EOK) {
         return ATK_MS901M_ERROR;
     }
