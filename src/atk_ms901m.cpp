@@ -146,8 +146,8 @@ void AtkMs901m::ImuReader()
                 }
                 if (sum == imu_frame_.check_sum) {
                     uint32_t buf_len = imu_frame_.len + 5;
-                    RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "buffer = %s", Bytes2String(ros_rx_buffer_ptr, buf_len).c_str());
-                    RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "check_sum = %X, sum =%X ", imu_frame_.check_sum,sum);
+                    // RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "buffer = %s", Bytes2String(ros_rx_buffer_ptr, buf_len).c_str());
+                    // RCLCPP_INFO(rclcpp::get_logger(__FUNCTION__), "check_sum = %X, sum =%X ", imu_frame_.check_sum,sum);
                     atk_ms901m_buffer_.size -= buf_len;
                     uint8_t buffer[sizeof(atk_ms901m_buffer_.rx_buffer)];
                     // 剩余未处理数据拷贝到临时变量
@@ -155,8 +155,8 @@ void AtkMs901m::ImuReader()
                     // 覆盖掉原来的buff
                     memcpy(atk_ms901m_buffer_.rx_buffer, buffer, atk_ms901m_buffer_.size);
                 } else {
-                    RCLCPP_WARN(rclcpp::get_logger(__FUNCTION__), "check_sum = %X, sum =%X ", imu_frame_.check_sum,sum);
-                    std::cerr << "Check sum fail" << std::endl;
+                    // RCLCPP_WARN(rclcpp::get_logger(__FUNCTION__), "check_sum = %X, sum =%X ", imu_frame_.check_sum,sum);
+                    std::cerr << "Check sum fail and delete it later " << std::endl;
                     uint32_t buf_len = imu_frame_.len + 5;
                     atk_ms901m_buffer_.size -= buf_len;
                     uint8_t buffer[sizeof(atk_ms901m_buffer_.rx_buffer)];

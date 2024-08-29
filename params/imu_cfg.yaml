@@ -4,7 +4,7 @@
       # mode zyz/atk
       module: "atk"
       # IMU端口
-      port: "/dev/ttyAMA2"
+      port: "/dev/ttyS7"
       # 波特率 230400
       baudrate: 115200
       # 中断脚
