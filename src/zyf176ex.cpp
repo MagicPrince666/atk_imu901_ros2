@@ -72,7 +72,7 @@ void Zyf176ex::ImuReader()
     {
         std::unique_lock<std::mutex> lck(g_mtx_);
         g_cv_.wait_for(lck, std::chrono::milliseconds(100));
-        if (zyz_176ex_buffer_.size < sizeof(zyz_data_t)) {
+        if (zyz_176ex_buffer_.size && (zyz_176ex_buffer_.size < sizeof(zyz_data_t))) {
 #if defined(USE_ROS_NORTIC_VERSION) || defined(USE_ROS_MELODIC_VERSION)
             ROS_WARN("buffer size = %d not a full protocol", zyz_176ex_buffer_.size);
             ROS_INFO("buffer [%s]", Bytes2String(zyz_176ex_buffer_.rx_buffer, zyz_176ex_buffer_.size).c_str());
