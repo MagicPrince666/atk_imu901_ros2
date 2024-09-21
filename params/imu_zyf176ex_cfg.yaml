@@ -4,7 +4,7 @@
       # mode zyz/atk zyz_176/zyz_143
       module: "zyz_176"
       # IMU端口
-      port: "/dev/ttyTHS1"
+      port: "/dev/imu_serial"
       # 波特率
       baudrate: 115200
       # 中断脚
