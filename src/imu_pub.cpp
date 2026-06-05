@@ -105,7 +105,7 @@ ImuPub::ImuPub(std::shared_ptr<rclcpp::Node> node)
 
         imu_timer_ = ros_node_->createTimer(ros::Duration(0.01), std::bind(&ImuPub::ImuPubCallback, this));
 #else
-        imu_pub_ = ros_node_->create_publisher<ImuMsg>(topic, 10);
+        imu_pub_ = ros_node_->create_publisher<ImuMsg>(topic, rclcpp::QoS(1).best_effort());
 
         imu_timer_ = ros_node_->create_wall_timer(
             std::chrono::milliseconds(10), std::bind(&ImuPub::ImuPubCallback, this));
